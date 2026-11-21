@@ -1,0 +1,14 @@
+LAPU-LAPU CITY COLLEGE
+QUALITY ASSURANCE & ACCREDITATION OFFICE
+Document Code: LLCC-QAO-2026-003
+Title: Documented Information Control Manual
+
+1. SCOPE
+Applies to College of Education (CoEd), College of Hospitality & Tourism Management (CHTM), College of Technology & Computer Studies (CoTech), and all administrative units.
+
+2. CONTROLLED NUMBERING CONVENTION
+Format: LLCC-[OFFICE]-[YEAR]-[SEQ]
+Example: LLCC-QAO-2026-003
+
+3. OBSOLETE RECORDS
+Superseded accreditation exhibits must be transitioned to Archived status for historical audit traceability.

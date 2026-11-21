@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --font-sans: "DM Sans", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --color-llcc-navy: #102d50;
+  --color-llcc-royal: #174a7e;
+  --color-llcc-gold: #d5aa42;
+  --color-llcc-gold-soft: #f6eed9;
+  --color-llcc-canvas: #f5f7fa;
+}
+
+@layer base {
+  body {
+    font-family: var(--font-sans);
+    background-color: #f5f7fa;
+    color: #0f172a;
+  }
+
+  h1, h2, h3, h4, .font-display {
+    font-family: var(--font-display);
+  }
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}

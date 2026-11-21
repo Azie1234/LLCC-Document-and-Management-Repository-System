@@ -1,0 +1,12 @@
+LAPU-LAPU CITY COLLEGE
+QUALITY ASSURANCE & ACCREDITATION OFFICE
+Document Code: LLCC-QAO-2026-003
+
+1. SCOPE
+Applies to College of Education (CoEd), College of Hospitality & Tourism Management (CHTM), College of Technology & Computer Studies (CoTech), and administrative units.
+
+2. CONTROLLED NUMBERING
+Format: LLCC-[DEPT]-[YEAR]-[SEQ]
+
+3. ARCHIVAL RETENTION
+Superseded records are transitioned to Archived status with immutable audit history.

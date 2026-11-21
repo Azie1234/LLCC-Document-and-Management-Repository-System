@@ -1,0 +1,5 @@
+Course_Code,Course_Title,Units,Year_Level,Prerequisite
+IT301,Enterprise Systems & Cloud Architecture,3,3rd Year,IT202
+IT305,Database Administration & Governance,3,3rd Year,IT201
+IT402,Information Assurance & Security,3,4th Year,IT301
+IT499,Industry Practicum / OJT (486 Hours),6,4th Year,All Core

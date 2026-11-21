@@ -1,0 +1,554 @@
+{
+  "departments": [
+    {
+      "id": "dept-op",
+      "code": "OP",
+      "name": "Office of the College President",
+      "head": "Dr. Elena M. Santos",
+      "retentionDefault": "Permanent",
+      "createdAt": "2026-01-05T08:00:00.000Z"
+    },
+    {
+      "id": "dept-reg",
+      "code": "REG",
+      "name": "Registrar & Academic Affairs",
+      "head": "Prof. Marco A. Villanueva",
+      "retentionDefault": "Permanent",
+      "createdAt": "2026-01-05T08:00:00.000Z"
+    },
+    {
+      "id": "dept-fin",
+      "code": "FIN",
+      "name": "Accounting, Budget & Procurement",
+      "head": "CPA Clarissa D. Mendoza",
+      "retentionDefault": "7 Years",
+      "createdAt": "2026-01-05T08:00:00.000Z"
+    },
+    {
+      "id": "dept-hrmo",
+      "code": "HRMO",
+      "name": "Human Resource Management Office",
+      "head": "Dir. Rafael B. Navarro",
+      "retentionDefault": "7 Years",
+      "createdAt": "2026-01-05T08:00:00.000Z"
+    },
+    {
+      "id": "dept-qao",
+      "code": "QAO",
+      "name": "Quality Assurance & Accreditation",
+      "head": "Engr. Patricia C. Lim",
+      "retentionDefault": "Permanent",
+      "createdAt": "2026-01-05T08:00:00.000Z"
+    },
+    {
+      "id": "dept-osa",
+      "code": "OSA",
+      "name": "Student Affairs & UniFAST Desk",
+      "head": "Dean Marisol T. Cabahug",
+      "retentionDefault": "5 Years",
+      "createdAt": "2026-01-05T08:00:00.000Z"
+    },
+    {
+      "id": "dept-mis",
+      "code": "MIS",
+      "name": "Management Information Systems",
+      "head": "Engr. Adrian R. Reyes",
+      "retentionDefault": "5 Years",
+      "createdAt": "2026-01-05T08:00:00.000Z"
+    }
+  ],
+  "folders": [
+    {
+      "id": "fld-bot-res",
+      "name": "Board of Trustees Resolutions",
+      "departmentId": "dept-op",
+      "parentId": null,
+      "description": "Approved resolutions from the Lapu-Lapu City College Board of Trustees.",
+      "createdAt": "2026-01-10T09:00:00.000Z",
+      "createdBy": "Dr. Elena M. Santos"
+    },
+    {
+      "id": "fld-ched-cur",
+      "name": "CHED Curricula & Registrar",
+      "departmentId": "dept-reg",
+      "parentId": null,
+      "description": "Program prospectuses, course syllabi, and enrollment guidelines for CoEd, CHTM, and CoTech.",
+      "createdAt": "2026-01-11T09:00:00.000Z",
+      "createdBy": "Prof. Marco A. Villanueva"
+    },
+    {
+      "id": "fld-fin-app",
+      "name": "Annual Procurement & Budgets",
+      "departmentId": "dept-fin",
+      "parentId": null,
+      "description": "LGU subsidy budgets, Annual Procurement Plans (APP), and COA audit filings.",
+      "createdAt": "2026-01-12T09:00:00.000Z",
+      "createdBy": "CPA Clarissa D. Mendoza"
+    },
+    {
+      "id": "fld-hrmo-pol",
+      "name": "Personnel & Merit Policies",
+      "departmentId": "dept-hrmo",
+      "parentId": null,
+      "description": "CSC-aligned faculty ranking criteria, service record templates, and leave guidelines.",
+      "createdAt": "2026-01-14T09:00:00.000Z",
+      "createdBy": "Dir. Rafael B. Navarro"
+    },
+    {
+      "id": "fld-qao-alcucoa",
+      "name": "ALCUCOA & ISO 9001 Control",
+      "departmentId": "dept-qao",
+      "parentId": null,
+      "description": "ALCUCOA accreditation exhibits, CHED COPC filings, and QMS document control SOPs.",
+      "createdAt": "2026-01-15T09:00:00.000Z",
+      "createdBy": "Engr. Patricia C. Lim"
+    },
+    {
+      "id": "fld-osa-unifast",
+      "name": "UniFAST & Student Services",
+      "departmentId": "dept-osa",
+      "parentId": null,
+      "description": "RA 10931 Free Higher Education billing statements, TES rosters, and student handbook.",
+      "createdAt": "2026-01-16T09:00:00.000Z",
+      "createdBy": "Dean Marisol T. Cabahug"
+    },
+    {
+      "id": "fld-mis-sec",
+      "name": "Data Privacy & MIS Protocols",
+      "departmentId": "dept-mis",
+      "parentId": null,
+      "description": "NPC Data Privacy compliance, campus network standards, and disaster recovery plans.",
+      "createdAt": "2026-01-16T09:00:00.000Z",
+      "createdBy": "Engr. Adrian R. Reyes"
+    }
+  ],
+  "documents": [
+    {
+      "id": "doc-001",
+      "refCode": "LLCC-OP-2026-001",
+      "title": "BOT Resolution No. 2026-04: Lapu-Lapu City College Records Governance Charter",
+      "summary": "Establishes centralized document classification, version control mandates, and digital archival authority across all LLCC academic and administrative offices.",
+      "departmentId": "dept-op",
+      "folderId": "fld-bot-res",
+      "category": "Resolution",
+      "status": "Approved",
+      "confidentiality": "Internal",
+      "retentionPolicy": "Permanent",
+      "tags": [
+        "Board of Trustees",
+        "Records Charter",
+        "Governance"
+      ],
+      "ownerName": "Dr. Elena M. Santos",
+      "reviewerName": "Engr. Patricia C. Lim",
+      "reviewNotes": "Approved unanimously during Q1 Board of Trustees Assembly at Gun-ob Campus.",
+      "currentVersion": "2.0",
+      "versions": [
+        {
+          "versionNumber": "2.0",
+          "fileName": "LLCC-OP-2026-001_Records_Governance_Charter.md",
+          "mimeType": "text/markdown",
+          "sizeBytes": 944,
+          "checksum": "fc8d36ab568342daf677d5c9397cd37f35f13986e207a484fee182878714d780",
+          "storageKey": "1795069786568-fa2851d015f1.md",
+          "uploadedAt": "2026-03-10T14:30:00.000Z",
+          "uploadedBy": "Dr. Elena M. Santos",
+          "changeNotes": "Initial controlled repository ingestion"
+        }
+      ],
+      "downloadCount": 48,
+      "createdAt": "2026-02-01T09:15:00.000Z",
+      "updatedAt": "2026-03-10T14:30:00.000Z"
+    },
+    {
+      "id": "doc-002",
+      "refCode": "LLCC-QAO-2026-003",
+      "title": "ALCUCOA & ISO 9001:2015 Documented Information Control Manual",
+      "summary": "Standard operating procedure governing creation, controlled numbering, ALCUCOA exhibit indexing, and obsolescence marking for LLCC quality records.",
+      "departmentId": "dept-qao",
+      "folderId": "fld-qao-alcucoa",
+      "category": "Policy",
+      "status": "Approved",
+      "confidentiality": "Internal",
+      "retentionPolicy": "Permanent",
+      "tags": [
+        "ALCUCOA",
+        "ISO 9001",
+        "CHED COPC"
+      ],
+      "ownerName": "Engr. Patricia C. Lim",
+      "reviewerName": "Dr. Elena M. Santos",
+      "reviewNotes": "Verified against ISO 9001:2015 Clause 7.5 and ALCUCOA Area X Administration.",
+      "currentVersion": "1.2",
+      "versions": [
+        {
+          "versionNumber": "1.2",
+          "fileName": "LLCC-QAO-2026-003_Document_Control_Manual.txt",
+          "mimeType": "text/plain",
+          "sizeBytes": 552,
+          "checksum": "19cda054f6b8d4bff21f5d2e29033caec424105a0dfd8fbe25515427527932a7",
+          "storageKey": "1795069786569-232ba7894928.txt",
+          "uploadedAt": "2026-04-04T11:20:00.000Z",
+          "uploadedBy": "Engr. Patricia C. Lim",
+          "changeNotes": "Initial controlled repository ingestion"
+        }
+      ],
+      "downloadCount": 74,
+      "createdAt": "2026-02-12T10:00:00.000Z",
+      "updatedAt": "2026-04-04T11:20:00.000Z"
+    },
+    {
+      "id": "doc-003",
+      "refCode": "LLCC-REG-2026-011",
+      "title": "Academic Calendar & Enrollment Clearance Protocol AY 2026–2027",
+      "summary": "Official Lapu-Lapu City College academic schedule, RA 10931 UniFAST verification window, and Registrar clearance workflow.",
+      "departmentId": "dept-reg",
+      "folderId": "fld-ched-cur",
+      "category": "Memorandum",
+      "status": "Approved",
+      "confidentiality": "Internal",
+      "retentionPolicy": "Permanent",
+      "tags": [
+        "Registrar",
+        "Academic Calendar",
+        "Enrollment"
+      ],
+      "ownerName": "Prof. Marco A. Villanueva",
+      "reviewerName": "Dr. Elena M. Santos",
+      "reviewNotes": "Cleared by the LLCC Academic Council.",
+      "currentVersion": "1.0",
+      "versions": [
+        {
+          "versionNumber": "1.0",
+          "fileName": "LLCC-REG-2026-011_Academic_Calendar_2026_2027.md",
+          "mimeType": "text/markdown",
+          "sizeBytes": 531,
+          "checksum": "d4c646d1f29e6c0c2a94014b9e9545099577c9e822a7bcaaae8b4cc2261ae184",
+          "storageKey": "1795069786569-2befd686ea26.md",
+          "uploadedAt": "2026-05-04T16:10:00.000Z",
+          "uploadedBy": "Prof. Marco A. Villanueva",
+          "changeNotes": "Initial controlled repository ingestion"
+        }
+      ],
+      "downloadCount": 103,
+      "createdAt": "2026-05-02T08:45:00.000Z",
+      "updatedAt": "2026-05-04T16:10:00.000Z"
+    },
+    {
+      "id": "doc-004",
+      "refCode": "LLCC-FIN-2026-007",
+      "title": "FY 2026 Annual Procurement Plan (APP) & Campus Laboratory Outlay",
+      "summary": "Itemized LGU-funded procurement schedule for CHTM culinary laboratory equipment, CoTech networking racks, and library digital terminals.",
+      "departmentId": "dept-fin",
+      "folderId": "fld-fin-app",
+      "category": "Financial Report",
+      "status": "In Review",
+      "confidentiality": "Restricted",
+      "retentionPolicy": "7 Years",
+      "tags": [
+        "APP 2026",
+        "Procurement",
+        "LGU Subsidy"
+      ],
+      "ownerName": "CPA Clarissa D. Mendoza",
+      "reviewerName": null,
+      "reviewNotes": "Awaiting Bids and Awards Committee (BAC) and President sign-off.",
+      "currentVersion": "1.1",
+      "versions": [
+        {
+          "versionNumber": "1.1",
+          "fileName": "LLCC-FIN-2026-007_Annual_Procurement_Plan.csv",
+          "mimeType": "text/csv",
+          "sizeBytes": 347,
+          "checksum": "fbeeb504333400fe1431faf54699afc15afe2ef4ba0d5293aa0c9cdd4be33ddb",
+          "storageKey": "1795069786569-6aa533954b03.csv",
+          "uploadedAt": "2026-11-02T09:40:00.000Z",
+          "uploadedBy": "CPA Clarissa D. Mendoza",
+          "changeNotes": "Initial controlled repository ingestion"
+        }
+      ],
+      "downloadCount": 22,
+      "createdAt": "2026-06-18T13:10:00.000Z",
+      "updatedAt": "2026-11-02T09:40:00.000Z"
+    },
+    {
+      "id": "doc-005",
+      "refCode": "LLCC-OSA-2026-009",
+      "title": "UniFAST RA 10931 Free Higher Education & TES Billing Guidelines",
+      "summary": "Operational guidelines for student residency verification, Free Higher Education (FHE) billing submission, and Tertiary Education Subsidy (TES) disbursement.",
+      "departmentId": "dept-osa",
+      "folderId": "fld-osa-unifast",
+      "category": "Policy",
+      "status": "In Review",
+      "confidentiality": "Restricted",
+      "retentionPolicy": "5 Years",
+      "tags": [
+        "UniFAST",
+        "RA 10931",
+        "Scholarship"
+      ],
+      "ownerName": "Dean Marisol T. Cabahug",
+      "reviewerName": null,
+      "reviewNotes": "Submitted for Registrar & Accounting joint compliance verification.",
+      "currentVersion": "1.0",
+      "versions": [
+        {
+          "versionNumber": "1.0",
+          "fileName": "LLCC-OSA-2026-009_UniFAST_FHE_Guidelines.md",
+          "mimeType": "text/markdown",
+          "sizeBytes": 528,
+          "checksum": "3b61ce7377343da9af3b20fbe629e8033158df73508e7e987a5619a572201a6b",
+          "storageKey": "1795069786569-570fe7fecd73.md",
+          "uploadedAt": "2026-11-10T15:20:00.000Z",
+          "uploadedBy": "Dean Marisol T. Cabahug",
+          "changeNotes": "Initial controlled repository ingestion"
+        }
+      ],
+      "downloadCount": 18,
+      "createdAt": "2026-10-14T11:00:00.000Z",
+      "updatedAt": "2026-11-10T15:20:00.000Z"
+    },
+    {
+      "id": "doc-006",
+      "refCode": "LLCC-MIS-2026-002",
+      "title": "NPC Data Privacy Act Compliance & Student Records Security Playbook",
+      "summary": "Mandatory containment, escalation, and breach notification procedures aligned with the Philippine Data Privacy Act of 2012 (RA 10173).",
+      "departmentId": "dept-mis",
+      "folderId": "fld-mis-sec",
+      "category": "Policy",
+      "status": "Approved",
+      "confidentiality": "Confidential",
+      "retentionPolicy": "5 Years",
+      "tags": [
+        "RA 10173",
+        "Data Privacy",
+        "Cybersecurity"
+      ],
+      "ownerName": "Engr. Adrian R. Reyes",
+      "reviewerName": "Dr. Elena M. Santos",
+      "reviewNotes": "Validated by LLCC Data Protection Officer following Q3 audit.",
+      "currentVersion": "2.1",
+      "versions": [
+        {
+          "versionNumber": "2.1",
+          "fileName": "LLCC-MIS-2026-002_Data_Privacy_Playbook.txt",
+          "mimeType": "text/plain",
+          "sizeBytes": 444,
+          "checksum": "d4712a1be27ad90e59e7fb4eefeb085deb81418d94a3a3042e016137af6ce3a3",
+          "storageKey": "1795069786569-571cd9610bbf.txt",
+          "uploadedAt": "2026-09-22T17:05:00.000Z",
+          "uploadedBy": "Engr. Adrian R. Reyes",
+          "changeNotes": "Initial controlled repository ingestion"
+        }
+      ],
+      "downloadCount": 34,
+      "createdAt": "2026-03-08T10:30:00.000Z",
+      "updatedAt": "2026-09-22T17:05:00.000Z"
+    },
+    {
+      "id": "doc-007",
+      "refCode": "LLCC-REG-2026-019",
+      "title": "BS Information Technology & Hospitality Tech Curriculum Revision Matrix",
+      "summary": "Draft CHED CMO-aligned curriculum matrix introducing cloud infrastructure, enterprise records systems, and tourism analytics electives.",
+      "departmentId": "dept-reg",
+      "folderId": "fld-ched-cur",
+      "category": "Curriculum",
+      "status": "Draft",
+      "confidentiality": "Internal",
+      "retentionPolicy": "Permanent",
+      "tags": [
+        "CoTech",
+        "CHED CMO",
+        "Curriculum"
+      ],
+      "ownerName": "Prof. Marco A. Villanueva",
+      "reviewerName": null,
+      "reviewNotes": null,
+      "currentVersion": "0.9",
+      "versions": [
+        {
+          "versionNumber": "0.9",
+          "fileName": "LLCC-REG-2026-019_BSIT_Curriculum_Draft.csv",
+          "mimeType": "text/csv",
+          "sizeBytes": 296,
+          "checksum": "5f58f6e87d87d328c48a3211fc9ddf88f31efdd82ad1c884993d77283608695e",
+          "storageKey": "1795069786570-fa6ac64c1901.csv",
+          "uploadedAt": "2026-11-16T10:15:00.000Z",
+          "uploadedBy": "Prof. Marco A. Villanueva",
+          "changeNotes": "Initial controlled repository ingestion"
+        }
+      ],
+      "downloadCount": 9,
+      "createdAt": "2026-11-05T14:20:00.000Z",
+      "updatedAt": "2026-11-16T10:15:00.000Z"
+    },
+    {
+      "id": "doc-008",
+      "refCode": "LLCC-OP-2025-018",
+      "title": "2025 LLCC Academic Council & ALCUCOA Pre-Visit Minutes",
+      "summary": "Superseded 2025 executive council minutes archived for historical CHED and ALCUCOA accreditation reference.",
+      "departmentId": "dept-op",
+      "folderId": "fld-bot-res",
+      "category": "Minutes",
+      "status": "Archived",
+      "confidentiality": "Internal",
+      "retentionPolicy": "Permanent",
+      "tags": [
+        "2025 Archive",
+        "Academic Council",
+        "ALCUCOA"
+      ],
+      "ownerName": "Dr. Elena M. Santos",
+      "reviewerName": "Engr. Patricia C. Lim",
+      "reviewNotes": "Archived upon publication of 2026 accreditation cycle minutes.",
+      "currentVersion": "1.0",
+      "versions": [
+        {
+          "versionNumber": "1.0",
+          "fileName": "LLCC-OP-2025-018_Council_Minutes_2025.txt",
+          "mimeType": "text/plain",
+          "sizeBytes": 287,
+          "checksum": "6dca8655011494b9cb92d5a188ea275320c4b966c94e156b4381aebfe959a270",
+          "storageKey": "1795069786570-307d6d8bf4b0.txt",
+          "uploadedAt": "2026-02-15T12:00:00.000Z",
+          "uploadedBy": "Dr. Elena M. Santos",
+          "changeNotes": "Initial controlled repository ingestion"
+        }
+      ],
+      "downloadCount": 29,
+      "createdAt": "2025-12-12T09:00:00.000Z",
+      "updatedAt": "2026-02-15T12:00:00.000Z"
+    },
+    {
+      "id": "doc-009",
+      "refCode": "LLCC-HRMO-2023-004",
+      "title": "Faculty Official Travel, Seminar & Research Grant Authorization Form",
+      "summary": "Controlled HRMO form for faculty conference travel, research presentation endorsement, and post-travel liquidation.",
+      "departmentId": "dept-hrmo",
+      "folderId": "fld-hrmo-pol",
+      "category": "Standard Form",
+      "status": "Approved",
+      "confidentiality": "Internal",
+      "retentionPolicy": "3 Years",
+      "tags": [
+        "HRMO Form",
+        "Faculty Travel",
+        "Research"
+      ],
+      "ownerName": "Dir. Rafael B. Navarro",
+      "reviewerName": "CPA Clarissa D. Mendoza",
+      "reviewNotes": "Aligned with Accounting & Budget Office liquidation checklist.",
+      "currentVersion": "1.3",
+      "versions": [
+        {
+          "versionNumber": "1.3",
+          "fileName": "LLCC-HRMO-2023-004_Faculty_Travel_Form.txt",
+          "mimeType": "text/plain",
+          "sizeBytes": 339,
+          "checksum": "3f260f7da6a0e8a3c6ebfcd39c67024a01750b0b198d8340f5d90fa1bd6e7eb8",
+          "storageKey": "1795069786570-b7d8b1361b0b.txt",
+          "uploadedAt": "2024-08-19T13:45:00.000Z",
+          "uploadedBy": "Dir. Rafael B. Navarro",
+          "changeNotes": "Initial controlled repository ingestion"
+        }
+      ],
+      "downloadCount": 118,
+      "createdAt": "2023-12-08T08:00:00.000Z",
+      "updatedAt": "2024-08-19T13:45:00.000Z"
+    },
+    {
+      "id": "doc-010",
+      "refCode": "LLCC-FIN-2022-003",
+      "title": "FY 2021–2022 CHED & LGU Subsidy Liquidation Report",
+      "summary": "Consolidated five-year retention financial liquidation voucher schedule for LGU operating grants and laboratory capital outlays.",
+      "departmentId": "dept-fin",
+      "folderId": "fld-fin-app",
+      "category": "Financial Report",
+      "status": "Approved",
+      "confidentiality": "Restricted",
+      "retentionPolicy": "5 Years",
+      "tags": [
+        "Liquidation",
+        "COA Audit",
+        "LGU Subsidy"
+      ],
+      "ownerName": "CPA Clarissa D. Mendoza",
+      "reviewerName": "Dr. Elena M. Santos",
+      "reviewNotes": "Cleared by Commission on Audit (COA) resident audit team.",
+      "currentVersion": "1.0",
+      "versions": [
+        {
+          "versionNumber": "1.0",
+          "fileName": "LLCC-FIN-2022-003_Subsidy_Liquidation_Report.csv",
+          "mimeType": "text/csv",
+          "sizeBytes": 313,
+          "checksum": "fe81e80469f82917660c4daa2afd702a2b709310073148fd993420f8cc0dc6fb",
+          "storageKey": "1795069786570-9e4a9065bd60.csv",
+          "uploadedAt": "2022-03-04T15:10:00.000Z",
+          "uploadedBy": "CPA Clarissa D. Mendoza",
+          "changeNotes": "Initial controlled repository ingestion"
+        }
+      ],
+      "downloadCount": 41,
+      "createdAt": "2022-01-12T09:30:00.000Z",
+      "updatedAt": "2022-03-04T15:10:00.000Z"
+    }
+  ],
+  "auditLogs": [
+    {
+      "id": "aud-1795070358122-a1633e",
+      "timestamp": "2026-11-19T06:39:18.123Z",
+      "actorName": "Dr. Elena M. Santos",
+      "actorRole": "Records Administrator",
+      "action": "LOGIN",
+      "targetId": "elena.santos@llcc.edu.ph",
+      "targetRef": "OP",
+      "targetTitle": "LLCC Portal Authentication",
+      "details": "Signed in as Dr. Elena M. Santos (elena.santos@llcc.edu.ph)."
+    },
+    {
+      "id": "aud-001",
+      "timestamp": "2026-11-16T10:15:00.000Z",
+      "actorName": "Prof. Marco A. Villanueva",
+      "actorRole": "Department Head",
+      "action": "UPLOADED",
+      "targetId": "doc-007",
+      "targetRef": "LLCC-REG-2026-019",
+      "targetTitle": "BS Information Technology & Hospitality Tech Curriculum Revision Matrix",
+      "details": "Uploaded draft v0.9 (LLCC-REG-2026-019_BSIT_Curriculum_Draft.csv)"
+    },
+    {
+      "id": "aud-002",
+      "timestamp": "2026-11-10T15:20:00.000Z",
+      "actorName": "Dean Marisol T. Cabahug",
+      "actorRole": "Department Head",
+      "action": "SUBMITTED_REVIEW",
+      "targetId": "doc-005",
+      "targetRef": "LLCC-OSA-2026-009",
+      "targetTitle": "UniFAST RA 10931 Free Higher Education & TES Billing Guidelines",
+      "details": "Submitted v1.0 to Review Queue for Registrar & Accounting verification."
+    },
+    {
+      "id": "aud-003",
+      "timestamp": "2026-11-02T09:40:00.000Z",
+      "actorName": "CPA Clarissa D. Mendoza",
+      "actorRole": "Department Head",
+      "action": "VERSION_ADDED",
+      "targetId": "doc-004",
+      "targetRef": "LLCC-FIN-2026-007",
+      "targetTitle": "FY 2026 Annual Procurement Plan (APP) & Campus Laboratory Outlay",
+      "details": "Updated Q3 CHTM culinary station budget lines in v1.1 and queued for review."
+    },
+    {
+      "id": "aud-004",
+      "timestamp": "2026-09-22T17:05:00.000Z",
+      "actorName": "Dr. Elena M. Santos",
+      "actorRole": "Records Administrator",
+      "action": "APPROVED",
+      "targetId": "doc-006",
+      "targetRef": "LLCC-MIS-2026-002",
+      "targetTitle": "NPC Data Privacy Act Compliance & Student Records Security Playbook",
+      "details": "Approved v2.1 following Q3 Data Privacy Office audit validation."
+    }
+  ]
+}

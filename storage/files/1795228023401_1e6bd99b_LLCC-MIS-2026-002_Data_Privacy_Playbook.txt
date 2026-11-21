@@ -1,0 +1,11 @@
+LAPU-LAPU CITY COLLEGE — MIS & DATA PRIVACY OFFICE (CONFIDENTIAL)
+Ref: LLCC-MIS-2026-002
+
+PHASE 1: DETECTION & TRIAGE (0-30 MINS)
+Isolate affected campus VLAN and preserve audit logs.
+
+PHASE 2: ESCALATION (30-120 MINS)
+Notify LLCC Data Protection Officer and Office of the College President.
+
+PHASE 3: NPC REPORTING
+File breach assessment within 72 hours per NPC Circular 16-03.
