@@ -77,29 +77,30 @@ export function Sidebar({
   onCloseMobile,
   onSignOut,
 }: SidebarProps) {
-  const allRoles: RoleSlug[] = ['super_admin', 'admin', 'faculty_staff', 'student'];
-  const nonStudentRoles: RoleSlug[] = ['super_admin', 'admin', 'faculty_staff'];
-  const adminRoles: RoleSlug[] = ['super_admin', 'admin'];
+  const allRoles: RoleSlug[] = ['super_admin', 'dean', 'department_head', 'staff', 'student'];
+  const uploaderRoles: RoleSlug[] = ['super_admin', 'department_head', 'staff'];
+  const governanceRoles: RoleSlug[] = ['super_admin', 'dean', 'department_head'];
+  const userManagementRoles: RoleSlug[] = ['super_admin', 'department_head'];
 
   const navItems: NavItemConfig[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, allowedRoles: allRoles },
     { id: 'repository', label: 'Document Repository', icon: FolderOpen, allowedRoles: allRoles },
-    { id: 'upload', label: 'Upload Documents', icon: Upload, allowedRoles: nonStudentRoles },
-    { id: 'my-documents', label: 'My Documents', icon: FileText, allowedRoles: nonStudentRoles },
+    { id: 'upload', label: 'Upload Documents', icon: Upload, allowedRoles: uploaderRoles },
+    { id: 'my-documents', label: 'My Documents', icon: FileText, allowedRoles: uploaderRoles },
     { id: 'categories', label: 'Categories', icon: Tags, allowedRoles: allRoles },
     { id: 'departments', label: 'Departments', icon: Building2, allowedRoles: allRoles },
     {
       id: 'approvals',
       label: 'Pending Approvals',
       icon: CheckSquare,
-      allowedRoles: adminRoles,
+      allowedRoles: governanceRoles,
       badge: pendingCount > 0 ? pendingCount : undefined,
     },
     {
       id: 'archived',
       label: 'Archived Documents',
       icon: Archive,
-      allowedRoles: adminRoles,
+      allowedRoles: governanceRoles,
       badge: archivedCount > 0 ? archivedCount : undefined,
     },
     {
@@ -109,14 +110,19 @@ export function Sidebar({
       allowedRoles: allRoles,
       badge: sharedCount > 0 ? sharedCount : undefined,
     },
-    { id: 'activity-logs', label: 'Activity Logs', icon: Activity, allowedRoles: adminRoles },
-    { id: 'reports', label: 'Reports & Analytics', icon: BarChart3, allowedRoles: adminRoles },
-    { id: 'users', label: 'User Management', icon: Users, allowedRoles: adminRoles },
+    { id: 'activity-logs', label: 'Activity Logs', icon: Activity, allowedRoles: governanceRoles },
+    { id: 'reports', label: 'Reports & Analytics', icon: BarChart3, allowedRoles: governanceRoles },
+    { id: 'users', label: 'User Management', icon: Users, allowedRoles: userManagementRoles },
     { id: 'settings', label: 'Settings', icon: Settings, allowedRoles: allRoles },
     { id: 'help', label: 'Help & Support', icon: HelpCircle, allowedRoles: allRoles },
   ];
 
   const visibleItems = navItems.filter((item) => item.allowedRoles.includes(currentUser.roleSlug));
+
+  const scopeLabel =
+    currentUser.roleSlug === 'dean'
+      ? 'COT · HTM · EDUC'
+      : currentUser.departmentCode || (currentUser.roleSlug === 'super_admin' ? 'System-Wide' : '');
 
   const sidebarContent = (
     <aside
@@ -200,9 +206,9 @@ export function Sidebar({
         {!collapsed && (
           <div className="rounded-lg bg-white/8 px-3 py-2.5">
             <div className="text-xs font-semibold text-white truncate">{currentUser.fullName}</div>
-            <div className="text-[11px] text-llcc-gold font-medium mt-0.5">
+            <div className="text-[11px] text-llcc-gold font-medium mt-0.5 truncate">
               {currentUser.roleName}
-              {currentUser.departmentCode ? ` · ${currentUser.departmentCode}` : ''}
+              {scopeLabel ? ` · ${scopeLabel}` : ''}
             </div>
           </div>
         )}

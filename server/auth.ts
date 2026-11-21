@@ -186,10 +186,46 @@ export function isSuperAdmin(user: UserAccount): boolean {
   return user.roleSlug === 'super_admin';
 }
 
-export function isAdminOrSuper(user: UserAccount): boolean {
-  return user.roleSlug === 'super_admin' || user.roleSlug === 'admin';
+export function isDean(user: UserAccount): boolean {
+  return user.roleSlug === 'dean';
+}
+
+export function isDepartmentHead(user: UserAccount): boolean {
+  return user.roleSlug === 'department_head';
+}
+
+export function isStaff(user: UserAccount): boolean {
+  return user.roleSlug === 'staff';
+}
+
+export function isStudent(user: UserAccount): boolean {
+  return user.roleSlug === 'student';
+}
+
+export function canApproveDocuments(user: UserAccount): boolean {
+  return (
+    user.roleSlug === 'super_admin' ||
+    user.roleSlug === 'dean' ||
+    user.roleSlug === 'department_head'
+  );
+}
+
+export function canManageDepartmentRepo(user: UserAccount): boolean {
+  return user.roleSlug === 'super_admin' || user.roleSlug === 'department_head';
 }
 
 export function canUploadDocuments(user: UserAccount): boolean {
-  return user.roleSlug !== 'student';
+  return (
+    user.roleSlug === 'super_admin' ||
+    user.roleSlug === 'department_head' ||
+    user.roleSlug === 'staff'
+  );
+}
+
+export function canViewActivityLogs(user: UserAccount): boolean {
+  return (
+    user.roleSlug === 'super_admin' ||
+    user.roleSlug === 'dean' ||
+    user.roleSlug === 'department_head'
+  );
 }

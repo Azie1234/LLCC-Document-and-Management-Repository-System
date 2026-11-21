@@ -127,6 +127,8 @@ export default function App() {
   // Deep-link filter states
   const [repoDeptFilter, setRepoDeptFilter] = useState<number | 'all'>('all');
   const [repoCatFilter, setRepoCatFilter] = useState<number | 'all'>('all');
+  const [repoSearchQuery, setRepoSearchQuery] = useState<string>('');
+  const [approvalsDeptFilter, setApprovalsDeptFilter] = useState<number | 'all'>('all');
   const [onlyExpiring, setOnlyExpiring] = useState(false);
 
   // Document Inspector Drawer
@@ -206,7 +208,11 @@ export default function App() {
     if (section !== 'repository') {
       setRepoDeptFilter('all');
       setRepoCatFilter('all');
+      setRepoSearchQuery('');
       setOnlyExpiring(false);
+    }
+    if (section !== 'approvals') {
+      setApprovalsDeptFilter('all');
     }
     const targetPath = SECTION_PATH_MAP[section];
     if (window.location.pathname !== targetPath) {
@@ -324,8 +330,11 @@ export default function App() {
     systemSettings,
   } = data;
 
-  const isAdmin = currentUser.roleSlug === 'super_admin' || currentUser.roleSlug === 'admin';
-  const canUpload = currentUser.roleSlug !== 'student';
+  const canUpload = ['super_admin', 'department_head', 'staff'].includes(currentUser.roleSlug);
+  const canGovernance = ['super_admin', 'dean', 'department_head'].includes(
+    currentUser.roleSlug
+  );
+  const canManageUsers = ['super_admin', 'department_head'].includes(currentUser.roleSlug);
 
   const pendingCount = documents.filter(
     (d) => d.status === 'Pending' || d.status === 'Under Review'
@@ -343,8 +352,9 @@ export default function App() {
 
   // Enforce role access if route switched directly
   const guardedSection: NavSection =
-    (!isAdmin &&
-      ['approvals', 'archived', 'activity-logs', 'reports', 'users'].includes(activeSection)) ||
+    (!canGovernance &&
+      ['approvals', 'archived', 'activity-logs', 'reports'].includes(activeSection)) ||
+    (!canManageUsers && activeSection === 'users') ||
     (!canUpload && ['upload', 'my-documents'].includes(activeSection))
       ? 'dashboard'
       : activeSection;
@@ -453,24 +463,41 @@ export default function App() {
               departments={departments}
               activityLogs={activityLogs}
               onNavigate={navigateTo}
+              onOpenDepartmentInRepo={(departmentId, initialSearch) => {
+                setRepoDeptFilter(departmentId);
+                setRepoCatFilter('all');
+                setRepoSearchQuery(initialSearch || '');
+                setOnlyExpiring(false);
+                setActiveSection('repository');
+                window.history.pushState({}, '', SECTION_PATH_MAP.repository);
+              }}
+              onOpenApprovals={(departmentId) => {
+                setApprovalsDeptFilter(departmentId ?? 'all');
+                setActiveSection('approvals');
+                window.history.pushState({}, '', SECTION_PATH_MAP.approvals);
+              }}
               onOpenExpiringFilter={() => {
+                setRepoSearchQuery('');
                 setOnlyExpiring(true);
                 setActiveSection('repository');
                 window.history.pushState({}, '', SECTION_PATH_MAP.repository);
               }}
               onInspectDocument={(doc) => openInspector(doc, 'overview')}
+              onDownloadDocument={handleDownload}
+              onRefresh={refreshBootstrap}
             />
           )}
 
           {guardedSection === 'repository' && (
             <RepositoryView
-              key={`${repoDeptFilter}-${repoCatFilter}`}
+              key={`${repoDeptFilter}-${repoCatFilter}-${repoSearchQuery}`}
               currentUser={currentUser}
               documents={documents}
               categories={categories}
               departments={departments}
               initialDepartmentId={repoDeptFilter}
               initialCategoryId={repoCatFilter}
+              initialSearchQuery={repoSearchQuery}
               onlyExpiring={onlyExpiring}
               onToggleOnlyExpiring={setOnlyExpiring}
               onInspectDocument={(doc, tab) => openInspector(doc, tab || 'overview')}
@@ -512,10 +539,12 @@ export default function App() {
             <CategoriesView
               currentUser={currentUser}
               categories={categories}
+              departments={departments}
               documents={documents}
               onOpenCategoryInRepo={(categoryId) => {
                 setRepoCatFilter(categoryId);
                 setRepoDeptFilter('all');
+                setRepoSearchQuery('');
                 setOnlyExpiring(false);
                 setActiveSection('repository');
                 window.history.pushState({}, '', SECTION_PATH_MAP.repository);
@@ -533,6 +562,7 @@ export default function App() {
               onOpenDepartmentInRepo={(departmentId) => {
                 setRepoDeptFilter(departmentId);
                 setRepoCatFilter('all');
+                setRepoSearchQuery('');
                 setOnlyExpiring(false);
                 setActiveSection('repository');
                 window.history.pushState({}, '', SECTION_PATH_MAP.repository);
@@ -541,16 +571,21 @@ export default function App() {
             />
           )}
 
-          {guardedSection === 'approvals' && isAdmin && (
+          {guardedSection === 'approvals' && canGovernance && (
             <ApprovalsView
+              key={String(approvalsDeptFilter)}
+              currentUser={currentUser}
               documents={documents}
+              departments={departments}
+              initialDepartmentId={approvalsDeptFilter}
               onInspectDocument={(doc) => openInspector(doc, 'overview')}
               onRefresh={refreshBootstrap}
             />
           )}
 
-          {guardedSection === 'archived' && isAdmin && (
+          {guardedSection === 'archived' && canGovernance && (
             <ArchivedDocumentsView
+              currentUser={currentUser}
               documents={documents}
               onInspectDocument={(doc) => openInspector(doc, 'overview')}
               onRefresh={refreshBootstrap}
@@ -567,11 +602,11 @@ export default function App() {
             />
           )}
 
-          {guardedSection === 'activity-logs' && isAdmin && (
+          {guardedSection === 'activity-logs' && canGovernance && (
             <ActivityLogsView logs={activityLogs} />
           )}
 
-          {guardedSection === 'reports' && isAdmin && (
+          {guardedSection === 'reports' && canGovernance && (
             <ReportsAnalyticsView
               documents={documents}
               departments={departments}
@@ -580,7 +615,7 @@ export default function App() {
             />
           )}
 
-          {guardedSection === 'users' && isAdmin && (
+          {guardedSection === 'users' && canManageUsers && (
             <UserManagementView
               currentUser={currentUser}
               users={users}

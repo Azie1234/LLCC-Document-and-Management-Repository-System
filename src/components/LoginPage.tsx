@@ -165,23 +165,29 @@ export function LoginPage({
               <p className="text-[11px] font-semibold uppercase tracking-wider text-llcc-gold">
                 Institutional Access Tiers
               </p>
-              <div className="space-y-2.5 text-xs text-slate-200">
-                <div className="rounded-lg bg-white/8 border border-white/10 px-3.5 py-2.5">
-                  <div className="font-semibold text-white">SUPER ADMIN &amp; ADMIN</div>
+              <div className="space-y-2 text-xs text-slate-200">
+                <div className="rounded-lg bg-white/8 border border-white/10 px-3.5 py-2">
+                  <div className="font-semibold text-white">SUPER ADMIN</div>
                   <div className="text-slate-300 mt-0.5">
-                    Repository governance, approvals, archiving, user roles, analytics &amp; settings.
+                    Complete system governance, user roles, department structure &amp; settings.
                   </div>
                 </div>
-                <div className="rounded-lg bg-white/8 border border-white/10 px-3.5 py-2.5">
-                  <div className="font-semibold text-white">FACULTY / STAFF</div>
+                <div className="rounded-lg bg-white/8 border border-white/10 px-3.5 py-2">
+                  <div className="font-semibold text-white">DEAN</div>
                   <div className="text-slate-300 mt-0.5">
-                    Upload departmental records, manage revisions, share documents &amp; track submissions.
+                    Centralized viewer and approver across COT, HTM, and EDUC repositories.
                   </div>
                 </div>
-                <div className="rounded-lg bg-white/8 border border-white/10 px-3.5 py-2.5">
-                  <div className="font-semibold text-white">STUDENT</div>
+                <div className="rounded-lg bg-white/8 border border-white/10 px-3.5 py-2">
+                  <div className="font-semibold text-white">DEPARTMENT HEAD</div>
                   <div className="text-slate-300 mt-0.5">
-                    Authorized view and download access to approved public and shared issuances.
+                    Full management of assigned college repository (COT, HTM, or EDUC).
+                  </div>
+                </div>
+                <div className="rounded-lg bg-white/8 border border-white/10 px-3.5 py-2">
+                  <div className="font-semibold text-white">STAFF &amp; STUDENT</div>
+                  <div className="text-slate-300 mt-0.5">
+                    Departmental record uploads for staff; published &amp; shared access for students.
                   </div>
                 </div>
               </div>

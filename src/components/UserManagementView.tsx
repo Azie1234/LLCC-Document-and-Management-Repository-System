@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import { Edit3, KeyRound, Plus, Trash2, UserCheck, UserX } from 'lucide-react';
 import { createUser, deleteUser, updateUser } from '../api.ts';
 import type { Department, RoleSlug, UserAccount } from '../types.ts';
@@ -18,18 +18,23 @@ export function UserManagementView({
   onRefresh,
 }: UserManagementViewProps) {
   const isSuper = currentUser.roleSlug === 'super_admin';
+  const isDeptHead = currentUser.roleSlug === 'department_head';
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [roleSlug, setRoleSlug] = useState<RoleSlug>('faculty_staff');
+  const [roleSlug, setRoleSlug] = useState<RoleSlug>('staff');
   const [departmentId, setDepartmentId] = useState<string>(
-    departments[0] ? String(departments[0].id) : ''
+    isDeptHead && currentUser.departmentId
+      ? String(currentUser.departmentId)
+      : departments[0]
+        ? String(departments[0].id)
+        : ''
   );
 
   const [editingUser, setEditingUser] = useState<UserAccount | null>(null);
-  const [editRole, setEditRole] = useState<RoleSlug>('faculty_staff');
+  const [editRole, setEditRole] = useState<RoleSlug>('staff');
   const [editDeptId, setEditDeptId] = useState<string>('');
   const [editFullName, setEditFullName] = useState('');
   const [resetPassUserId, setResetPassUserId] = useState<number | null>(null);
@@ -40,19 +45,46 @@ export function UserManagementView({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  const visibleUsers = useMemo(() => {
+    if (isSuper) return users;
+    if (isDeptHead && currentUser.departmentId !== null) {
+      return users.filter((u) => u.departmentId === currentUser.departmentId);
+    }
+    return [];
+  }, [users, isSuper, isDeptHead, currentUser.departmentId]);
+
+  const canManageTargetUser = (target: UserAccount): boolean => {
+    if (isSuper) return true;
+    if (isDeptHead) {
+      return (
+        target.departmentId === currentUser.departmentId &&
+        (target.roleSlug === 'staff' || target.roleSlug === 'student')
+      );
+    }
+    return false;
+  };
+
   const handleCreate = async (e: FormEvent) => {
     e.preventDefault();
     setBusy(true);
     setError(null);
     setSuccess(null);
     try {
+      const targetDeptId = isDeptHead
+        ? currentUser.departmentId
+        : roleSlug === 'dean' || roleSlug === 'super_admin'
+          ? null
+          : departmentId
+            ? Number(departmentId)
+            : null;
+
       await createUser({
         fullName: fullName.trim(),
         email: email.trim(),
         username: username.trim(),
         password,
         roleSlug,
-        departmentId: departmentId ? Number(departmentId) : null,
+        departmentId: targetDeptId,
       });
       setFullName('');
       setEmail('');
@@ -77,7 +109,13 @@ export function UserManagementView({
       await updateUser(editingUser.id, {
         fullName: editFullName.trim(),
         roleSlug: editRole,
-        departmentId: editDeptId ? Number(editDeptId) : null,
+        departmentId: isDeptHead
+          ? currentUser.departmentId
+          : editRole === 'dean' || editRole === 'super_admin'
+            ? null
+            : editDeptId
+              ? Number(editDeptId)
+              : null,
       });
       setEditingUser(null);
       setSuccess('User role and profile updated.');
@@ -114,7 +152,9 @@ export function UserManagementView({
         <div>
           <h2 className="font-display text-lg font-bold text-llcc-navy">User Management</h2>
           <p className="text-xs text-slate-500">
-            Provision LLCC accounts, assign role tiers and departments, and control account status.
+            {isDeptHead
+              ? `Provision and manage Staff and Student accounts within ${currentUser.departmentCode || 'your'} department.`
+              : 'Provision LLCC accounts, assign role tiers (Super Admin, Dean, Department Head, Staff, Student) and departments.'}
           </p>
         </div>
 
@@ -172,22 +212,37 @@ export function UserManagementView({
             className="md:col-span-2 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs"
           >
             {isSuper && <option value="super_admin">SUPER ADMIN</option>}
-            <option value="admin">ADMIN</option>
-            <option value="faculty_staff">FACULTY / STAFF</option>
+            {isSuper && <option value="dean">DEAN</option>}
+            {isSuper && <option value="department_head">DEPARTMENT HEAD</option>}
+            <option value="staff">STAFF</option>
             <option value="student">STUDENT</option>
           </select>
-          <select
-            value={departmentId}
-            onChange={(e) => setDepartmentId(e.target.value)}
-            className="md:col-span-4 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs"
-          >
-            <option value="">No Department Assigned</option>
-            {departments.map((d) => (
-              <option key={d.id} value={String(d.id)}>
-                {d.code} — {d.name}
-              </option>
-            ))}
-          </select>
+
+          {isDeptHead ? (
+            <div className="md:col-span-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-llcc-navy flex items-center">
+              {currentUser.departmentCode} — {currentUser.departmentName}
+            </div>
+          ) : roleSlug === 'dean' || roleSlug === 'super_admin' ? (
+            <div className="md:col-span-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 flex items-center">
+              {roleSlug === 'dean'
+                ? 'Centralized Oversight (COT · HTM · EDUC)'
+                : 'System-Wide Governance'}
+            </div>
+          ) : (
+            <select
+              value={departmentId}
+              onChange={(e) => setDepartmentId(e.target.value)}
+              className="md:col-span-4 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs"
+            >
+              <option value="">No Department Assigned</option>
+              {departments.map((d) => (
+                <option key={d.id} value={String(d.id)}>
+                  {d.code} — {d.name}
+                </option>
+              ))}
+            </select>
+          )}
+
           <div className="md:col-span-8 flex justify-end">
             <button
               type="submit"
@@ -231,22 +286,30 @@ export function UserManagementView({
               className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs"
             >
               {isSuper && <option value="super_admin">SUPER ADMIN</option>}
-              <option value="admin">ADMIN</option>
-              <option value="faculty_staff">FACULTY / STAFF</option>
+              {isSuper && <option value="dean">DEAN</option>}
+              {isSuper && <option value="department_head">DEPARTMENT HEAD</option>}
+              <option value="staff">STAFF</option>
               <option value="student">STUDENT</option>
             </select>
-            <select
-              value={editDeptId}
-              onChange={(e) => setEditDeptId(e.target.value)}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs"
-            >
-              <option value="">No Department</option>
-              {departments.map((d) => (
-                <option key={d.id} value={String(d.id)}>
-                  {d.code} — {d.name}
-                </option>
-              ))}
-            </select>
+            {isDeptHead ? (
+              <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 flex items-center">
+                {currentUser.departmentCode} — {currentUser.departmentName}
+              </div>
+            ) : (
+              <select
+                value={editDeptId}
+                disabled={editRole === 'dean' || editRole === 'super_admin'}
+                onChange={(e) => setEditDeptId(e.target.value)}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs disabled:bg-slate-50"
+              >
+                <option value="">All Colleges / Unassigned</option>
+                {departments.map((d) => (
+                  <option key={d.id} value={String(d.id)}>
+                    {d.code} — {d.name}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
           <div className="flex justify-end">
             <button
@@ -273,125 +336,138 @@ export function UserManagementView({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {users.map((u) => (
-                <tr key={u.id} className="hover:bg-slate-50/70">
-                  <td className="py-3 px-4">
-                    <div className="font-semibold text-slate-900">{u.fullName}</div>
-                    <div className="text-[11px] text-slate-500 font-mono">
-                      {u.email} · @{u.username}
-                    </div>
-                  </td>
-                  <td className="py-3 px-3 font-semibold text-llcc-navy whitespace-nowrap">
-                    {u.roleName}
-                  </td>
-                  <td className="py-3 px-3 text-slate-600">
-                    {u.departmentCode ? `${u.departmentCode} — ${u.departmentName}` : 'Unassigned'}
-                  </td>
-                  <td className="py-3 px-3 tabular-nums">
-                    <div
-                      className={`font-semibold ${
-                        u.isActive ? 'text-emerald-700' : 'text-red-700'
-                      }`}
-                    >
-                      {u.isActive ? 'Active' : 'Deactivated'}
-                    </div>
-                    <div className="text-[11px] text-slate-400">
-                      {u.lastLoginAt ? `Login: ${formatDateTime(u.lastLoginAt)}` : 'Never signed in'}
-                    </div>
-                  </td>
-                  <td className="py-3 px-4 text-right whitespace-nowrap">
-                    <div className="inline-flex items-center gap-1">
-                      <button
-                        type="button"
-                        title="Edit role & department"
-                        onClick={() => {
-                          setEditingUser(u);
-                          setEditFullName(u.fullName);
-                          setEditRole(u.roleSlug);
-                          setEditDeptId(u.departmentId ? String(u.departmentId) : '');
-                        }}
-                        className="p-1.5 rounded-md text-slate-500 hover:text-llcc-navy hover:bg-slate-100"
+              {visibleUsers.map((u) => {
+                const manageable = canManageTargetUser(u);
+                return (
+                  <tr key={u.id} className="hover:bg-slate-50/70">
+                    <td className="py-3 px-4">
+                      <div className="font-semibold text-slate-900">{u.fullName}</div>
+                      <div className="text-[11px] text-slate-500 font-mono">
+                        {u.email} · @{u.username}
+                      </div>
+                    </td>
+                    <td className="py-3 px-3 font-semibold text-llcc-navy whitespace-nowrap">
+                      {u.roleName}
+                    </td>
+                    <td className="py-3 px-3 text-slate-600">
+                      {u.roleSlug === 'dean'
+                        ? 'All Colleges (COT · HTM · EDUC)'
+                        : u.departmentCode
+                          ? `${u.departmentCode} — ${u.departmentName}`
+                          : 'System-Wide'}
+                    </td>
+                    <td className="py-3 px-3 tabular-nums">
+                      <div
+                        className={`font-semibold ${
+                          u.isActive ? 'text-emerald-700' : 'text-red-700'
+                        }`}
                       >
-                        <Edit3 className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        title="Reset password"
-                        onClick={() => {
-                          setResetPassUserId(resetPassUserId === u.id ? null : u.id);
-                          setNewPasswordInput('');
-                        }}
-                        className="p-1.5 rounded-md text-slate-500 hover:text-llcc-royal hover:bg-slate-100"
-                      >
-                        <KeyRound className="h-3.5 w-3.5" />
-                      </button>
-                      {u.id !== currentUser.id && (
+                        {u.isActive ? 'Active' : 'Deactivated'}
+                      </div>
+                      <div className="text-[11px] text-slate-400">
+                        {u.lastLoginAt ? `Login: ${formatDateTime(u.lastLoginAt)}` : 'Never signed in'}
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-right whitespace-nowrap">
+                      {manageable ? (
                         <>
-                          <button
-                            type="button"
-                            title={u.isActive ? 'Deactivate account' : 'Activate account'}
-                            onClick={async () => {
-                              await updateUser(u.id, { isActive: !u.isActive });
-                              await onRefresh();
-                            }}
-                            className={`p-1.5 rounded-md ${
-                              u.isActive
-                                ? 'text-slate-500 hover:text-amber-700 hover:bg-amber-50'
-                                : 'text-emerald-600 hover:bg-emerald-50'
-                            }`}
-                          >
-                            {u.isActive ? (
-                              <UserX className="h-3.5 w-3.5" />
-                            ) : (
-                              <UserCheck className="h-3.5 w-3.5" />
-                            )}
-                          </button>
-                          {confirmDeleteId === u.id ? (
+                          <div className="inline-flex items-center gap-1">
                             <button
                               type="button"
-                              onClick={async () => {
-                                await deleteUser(u.id);
-                                setConfirmDeleteId(null);
-                                await onRefresh();
+                              title="Edit role & department"
+                              onClick={() => {
+                                setEditingUser(u);
+                                setEditFullName(u.fullName);
+                                setEditRole(u.roleSlug);
+                                setEditDeptId(u.departmentId ? String(u.departmentId) : '');
                               }}
-                              className="px-2 py-1 rounded bg-red-600 text-white text-[11px] font-semibold"
+                              className="p-1.5 rounded-md text-slate-500 hover:text-llcc-navy hover:bg-slate-100"
                             >
-                              Confirm
+                              <Edit3 className="h-3.5 w-3.5" />
                             </button>
-                          ) : (
                             <button
                               type="button"
-                              title="Delete account"
-                              onClick={() => setConfirmDeleteId(u.id)}
-                              className="p-1.5 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50"
+                              title="Reset password"
+                              onClick={() => {
+                                setResetPassUserId(resetPassUserId === u.id ? null : u.id);
+                                setNewPasswordInput('');
+                              }}
+                              className="p-1.5 rounded-md text-slate-500 hover:text-llcc-royal hover:bg-slate-100"
                             >
-                              <Trash2 className="h-3.5 w-3.5" />
+                              <KeyRound className="h-3.5 w-3.5" />
                             </button>
+                            {u.id !== currentUser.id && (
+                              <>
+                                <button
+                                  type="button"
+                                  title={u.isActive ? 'Deactivate account' : 'Activate account'}
+                                  onClick={async () => {
+                                    await updateUser(u.id, { isActive: !u.isActive });
+                                    await onRefresh();
+                                  }}
+                                  className={`p-1.5 rounded-md ${
+                                    u.isActive
+                                      ? 'text-slate-500 hover:text-amber-700 hover:bg-amber-50'
+                                      : 'text-emerald-600 hover:bg-emerald-50'
+                                  }`}
+                                >
+                                  {u.isActive ? (
+                                    <UserX className="h-3.5 w-3.5" />
+                                  ) : (
+                                    <UserCheck className="h-3.5 w-3.5" />
+                                  )}
+                                </button>
+                                {confirmDeleteId === u.id ? (
+                                  <button
+                                    type="button"
+                                    onClick={async () => {
+                                      await deleteUser(u.id);
+                                      setConfirmDeleteId(null);
+                                      await onRefresh();
+                                    }}
+                                    className="px-2 py-1 rounded bg-red-600 text-white text-[11px] font-semibold"
+                                  >
+                                    Confirm
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    title="Delete account"
+                                    onClick={() => setConfirmDeleteId(u.id)}
+                                    className="p-1.5 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+                                )}
+                              </>
+                            )}
+                          </div>
+                          {resetPassUserId === u.id && (
+                            <div className="mt-2 flex items-center justify-end gap-1.5">
+                              <input
+                                type="password"
+                                value={newPasswordInput}
+                                onChange={(e) => setNewPasswordInput(e.target.value)}
+                                placeholder="New password"
+                                className="rounded border border-slate-200 px-2 py-1 text-xs w-36"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => void handleResetPassword(u.id)}
+                                className="rounded bg-llcc-navy px-2.5 py-1 text-xs font-semibold text-white"
+                              >
+                                Save
+                              </button>
+                            </div>
                           )}
                         </>
+                      ) : (
+                        <span className="text-[11px] text-slate-400">Read-only</span>
                       )}
-                    </div>
-                    {resetPassUserId === u.id && (
-                      <div className="mt-2 flex items-center justify-end gap-1.5">
-                        <input
-                          type="password"
-                          value={newPasswordInput}
-                          onChange={(e) => setNewPasswordInput(e.target.value)}
-                          placeholder="New password"
-                          className="rounded border border-slate-200 px-2 py-1 text-xs w-36"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => void handleResetPassword(u.id)}
-                          className="rounded bg-llcc-navy px-2.5 py-1 text-xs font-semibold text-white"
-                        >
-                          Save
-                        </button>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

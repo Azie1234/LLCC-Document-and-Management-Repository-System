@@ -58,20 +58,25 @@ export function HelpSupportView({ systemSettings }: HelpSupportViewProps) {
           <div className="space-y-2 text-xs text-slate-600">
             <div>
               <span className="font-semibold text-llcc-navy">SUPER ADMIN:</span> Full system
-              configuration, branding, user/role administration, approvals, archiving, and exports.
+              configuration, branding, user/role administration, departments, approvals, and exports.
             </div>
             <div>
-              <span className="font-semibold text-llcc-navy">ADMIN:</span> Approve/reject
-              documents, manage categories and departments, archive/restore records, view logs and
-              analytics.
+              <span className="font-semibold text-llcc-navy">DEAN:</span> Centralized viewer and
+              approver across COT, HTM, and EDUC repositories, analytics, and activity logs without
+              altering departmental ownership.
             </div>
             <div>
-              <span className="font-semibold text-llcc-navy">FACULTY / STAFF:</span> Upload new
-              records, edit owned metadata, commit revisions, share documents, and track approvals.
+              <span className="font-semibold text-llcc-navy">DEPARTMENT HEAD:</span> Full management
+              of their assigned college repository (COT, HTM, or EDUC), departmental approvals,
+              categories, archives, and department staff/student accounts.
+            </div>
+            <div>
+              <span className="font-semibold text-llcc-navy">STAFF:</span> Scoped to their assigned
+              department to upload records, manage owned revisions, share files, and track approvals.
             </div>
             <div>
               <span className="font-semibold text-llcc-navy">STUDENT:</span> View and download
-              approved public documents and records explicitly shared with students.
+              access to approved published records and documents explicitly shared with students.
             </div>
           </div>
         </div>

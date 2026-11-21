@@ -1,4 +1,4 @@
-import { useRef, useState, type DragEvent, type FormEvent } from 'react';
+import { useMemo, useRef, useState, type DragEvent, type FormEvent } from 'react';
 import {
   AlertCircle,
   CheckCircle2,
@@ -49,21 +49,41 @@ export function UploadDocumentView({
   onUploaded,
   onCancel,
 }: UploadDocumentViewProps) {
-  const defaultDept = currentUser.departmentId || departments[0]?.id || 1;
-  const defaultCat = categories[0]?.id || 1;
-  const isAdmin = currentUser.roleSlug === 'super_admin' || currentUser.roleSlug === 'admin';
+  const isDeptHead = currentUser.roleSlug === 'department_head';
+  const canPublishDirectly =
+    currentUser.roleSlug === 'super_admin' || currentUser.roleSlug === 'department_head';
+
+  const orderedDepartments = useMemo(() => {
+    const rank: Record<string, number> = { COT: 0, HTM: 1, EDUC: 2 };
+    return [...departments].sort(
+      (a, b) => (rank[a.code] ?? 99) - (rank[b.code] ?? 99) || a.code.localeCompare(b.code)
+    );
+  }, [departments]);
+
+  const defaultDept = currentUser.departmentId || orderedDepartments[0]?.id || 1;
+  const [departmentId, setDepartmentId] = useState<number>(defaultDept);
+
+  const availableCategories = useMemo(
+    () => categories.filter((cat) => cat.departmentId === null || cat.departmentId === departmentId),
+    [categories, departmentId]
+  );
+
+  const [categoryId, setCategoryId] = useState<number>(
+    () =>
+      categories.find((c) => c.departmentId === defaultDept || c.departmentId === null)?.id ||
+      categories[0]?.id ||
+      1
+  );
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [categoryId, setCategoryId] = useState<number>(defaultCat);
-  const [departmentId, setDepartmentId] = useState<number>(defaultDept);
   const [documentType, setDocumentType] = useState('Memorandum');
   const [academicYear, setAcademicYear] = useState(systemSettings.academicYear || 'AY 2026-2027');
   const [docCode, setDocCode] = useState('');
   const [tagsInput, setTagsInput] = useState('');
   const [confidentiality, setConfidentiality] = useState<ConfidentialityLevel>('Internal');
   const [retentionPolicy, setRetentionPolicy] = useState<RetentionPolicy>('5 Years');
-  const [status, setStatus] = useState<DocumentStatus>(isAdmin ? 'Approved' : 'Pending');
+  const [status, setStatus] = useState<DocumentStatus>(canPublishDirectly ? 'Approved' : 'Pending');
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -76,10 +96,24 @@ export function UploadDocumentView({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const allowedList = systemSettings.allowedFormats.length > 0
-    ? systemSettings.allowedFormats
-    : ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png', 'csv', 'txt', 'md'];
+  const allowedList =
+    systemSettings.allowedFormats.length > 0
+      ? systemSettings.allowedFormats
+      : ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png', 'csv', 'txt', 'md'];
   const maxBytes = (systemSettings.maxUploadMb || 25) * 1024 * 1024;
+
+  const handleDepartmentChange = (nextDeptId: number) => {
+    setDepartmentId(nextDeptId);
+    const stillValid = categories.some(
+      (c) => c.id === categoryId && (c.departmentId === null || c.departmentId === nextDeptId)
+    );
+    if (!stillValid) {
+      const fallback = categories.find(
+        (c) => c.departmentId === nextDeptId || c.departmentId === null
+      );
+      if (fallback) setCategoryId(fallback.id);
+    }
+  };
 
   const validateAndAttachFile = (file: File) => {
     setError(null);
@@ -182,6 +216,8 @@ export function UploadDocumentView({
     }
   };
 
+  const selectedDept = orderedDepartments.find((d) => d.id === departmentId);
+
   return (
     <div className="max-w-5xl mx-auto space-y-5">
       <div className="rounded-xl bg-white border border-slate-200/80 p-6 shadow-xs">
@@ -189,8 +225,8 @@ export function UploadDocumentView({
           <div>
             <h2 className="font-display text-xl font-bold text-llcc-navy">Upload Document</h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              Submit institutional files into the repository with SHA-256 verification and
-              retention classification.
+              Every uploaded file is assigned to a college repository (COT, HTM, or EDUC) with SHA-256
+              integrity verification.
             </p>
           </div>
           <button
@@ -258,6 +294,29 @@ export function UploadDocumentView({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  College Department <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={departmentId}
+                  onChange={(e) => handleDepartmentChange(Number(e.target.value))}
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white focus:border-llcc-royal focus:outline-none"
+                >
+                  {orderedDepartments.map((dept) => {
+                    const disabled =
+                      isDeptHead &&
+                      currentUser.departmentId !== null &&
+                      dept.id !== currentUser.departmentId;
+                    return (
+                      <option key={dept.id} value={dept.id} disabled={disabled}>
+                        {dept.code} — {dept.name}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Document Category <span className="text-red-500">*</span>
                 </label>
                 <select
@@ -265,26 +324,10 @@ export function UploadDocumentView({
                   onChange={(e) => setCategoryId(Number(e.target.value))}
                   className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white focus:border-llcc-royal focus:outline-none"
                 >
-                  {categories.map((cat) => (
+                  {availableCategories.map((cat) => (
                     <option key={cat.id} value={cat.id}>
+                      {cat.departmentCode ? `[${cat.departmentCode}] ` : ''}
                       {cat.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Department <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={departmentId}
-                  onChange={(e) => setDepartmentId(Number(e.target.value))}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white focus:border-llcc-royal focus:outline-none"
-                >
-                  {departments.map((dept) => (
-                    <option key={dept.id} value={dept.id}>
-                      {dept.code} — {dept.name}
                     </option>
                   ))}
                 </select>
@@ -362,7 +405,9 @@ export function UploadDocumentView({
                 >
                   <option value="Draft">Draft (Save privately)</option>
                   <option value="Pending">Pending (Submit for Approval)</option>
-                  {isAdmin && <option value="Approved">Approved (Publish directly)</option>}
+                  {canPublishDirectly && (
+                    <option value="Approved">Approved (Publish directly)</option>
+                  )}
                 </select>
               </div>
 
@@ -388,7 +433,7 @@ export function UploadDocumentView({
                   type="text"
                   value={tagsInput}
                   onChange={(e) => setTagsInput(e.target.value)}
-                  placeholder="memo, enrollment, 2026 (comma-separated)"
+                  placeholder="syllabus, lab, 2026 (comma-separated)"
                   className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-llcc-royal focus:outline-none"
                 />
               </div>
@@ -400,7 +445,7 @@ export function UploadDocumentView({
                   type="text"
                   value={docCode}
                   onChange={(e) => setDocCode(e.target.value)}
-                  placeholder="Auto: LLCC-[DEPT]-2026-XXX"
+                  placeholder={`Auto: LLCC-${selectedDept?.code || 'DEPT'}-2026-XXX`}
                   className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-mono focus:border-llcc-royal focus:outline-none"
                 />
               </div>

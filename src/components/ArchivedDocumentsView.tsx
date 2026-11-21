@@ -1,16 +1,18 @@
 import { useMemo, useState } from 'react';
 import { Archive, Eye, RotateCcw, Search, Trash2 } from 'lucide-react';
 import { deleteDocumentPermanently, transitionWorkflow } from '../api.ts';
-import type { DocumentRecord } from '../types.ts';
+import type { DocumentRecord, UserAccount } from '../types.ts';
 import { formatBytes, formatDate, getFileExtension } from '../utils/format.ts';
 
 interface ArchivedDocumentsViewProps {
+  currentUser: UserAccount;
   documents: DocumentRecord[];
   onInspectDocument: (doc: DocumentRecord) => void;
   onRefresh: () => Promise<void>;
 }
 
 export function ArchivedDocumentsView({
+  currentUser,
   documents,
   onInspectDocument,
   onRefresh,
@@ -19,6 +21,14 @@ export function ArchivedDocumentsView({
   const [busyId, setBusyId] = useState<number | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const canManageArchivedDoc = (doc: DocumentRecord): boolean => {
+    if (currentUser.roleSlug === 'super_admin') return true;
+    if (currentUser.roleSlug === 'department_head') {
+      return currentUser.departmentId !== null && doc.departmentId === currentUser.departmentId;
+    }
+    return false;
+  };
 
   const archivedDocs = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -85,99 +95,106 @@ export function ArchivedDocumentsView({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {archivedDocs.map((doc) => (
-                  <tr key={doc.id} className="hover:bg-slate-50/70">
-                    <td className="py-3 px-4">
-                      <button
-                        type="button"
-                        onClick={() => onInspectDocument(doc)}
-                        className="text-left"
-                      >
-                        <div className="font-mono text-[11px] font-semibold text-llcc-royal tabular-nums">
-                          {doc.docCode}
-                        </div>
-                        <div className="text-sm font-semibold text-slate-900 hover:text-llcc-royal">
-                          {doc.title}
-                        </div>
-                      </button>
-                    </td>
-                    <td className="py-3 px-3 text-slate-600">
-                      <div className="font-semibold text-llcc-navy">{doc.departmentCode}</div>
-                      <div className="text-[11px] text-slate-500">{doc.categoryName}</div>
-                    </td>
-                    <td className="py-3 px-3 text-slate-600 tabular-nums">
-                      {getFileExtension(doc.fileName)} · {formatBytes(doc.fileSizeBytes)}
-                    </td>
-                    <td className="py-3 px-3 text-slate-500 tabular-nums">
-                      {formatDate(doc.archivedAt || doc.updatedAt)}
-                    </td>
-                    <td className="py-3 px-4 text-right whitespace-nowrap">
-                      <div className="inline-flex items-center gap-1.5">
+                {archivedDocs.map((doc) => {
+                  const canManage = canManageArchivedDoc(doc);
+                  return (
+                    <tr key={doc.id} className="hover:bg-slate-50/70">
+                      <td className="py-3 px-4">
                         <button
                           type="button"
                           onClick={() => onInspectDocument(doc)}
-                          className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                          className="text-left"
                         >
-                          <Eye className="h-3.5 w-3.5" />
-                          Inspect
+                          <div className="font-mono text-[11px] font-semibold text-llcc-royal tabular-nums">
+                            {doc.docCode}
+                          </div>
+                          <div className="text-sm font-semibold text-slate-900 hover:text-llcc-royal">
+                            {doc.title}
+                          </div>
                         </button>
-                        <button
-                          type="button"
-                          disabled={busyId === doc.id}
-                          onClick={async () => {
-                            setBusyId(doc.id);
-                            setError(null);
-                            try {
-                              await transitionWorkflow(doc.id, 'restore');
-                              await onRefresh();
-                            } catch (err) {
-                              setError(err instanceof Error ? err.message : 'Restore failed.');
-                            } finally {
-                              setBusyId(null);
-                            }
-                          }}
-                          className="inline-flex items-center gap-1 rounded-md bg-llcc-navy px-2.5 py-1 text-xs font-semibold text-white hover:bg-llcc-royal disabled:opacity-60"
-                        >
-                          <RotateCcw className="h-3.5 w-3.5" />
-                          Restore
-                        </button>
-                        {confirmDeleteId === doc.id ? (
+                      </td>
+                      <td className="py-3 px-3 text-slate-600">
+                        <div className="font-semibold text-llcc-navy">{doc.departmentCode}</div>
+                        <div className="text-[11px] text-slate-500">{doc.categoryName}</div>
+                      </td>
+                      <td className="py-3 px-3 text-slate-600 tabular-nums">
+                        {getFileExtension(doc.fileName)} · {formatBytes(doc.fileSizeBytes)}
+                      </td>
+                      <td className="py-3 px-3 text-slate-500 tabular-nums">
+                        {formatDate(doc.archivedAt || doc.updatedAt)}
+                      </td>
+                      <td className="py-3 px-4 text-right whitespace-nowrap">
+                        <div className="inline-flex items-center gap-1.5">
                           <button
                             type="button"
-                            disabled={busyId === doc.id}
-                            onClick={async () => {
-                              setBusyId(doc.id);
-                              setError(null);
-                              try {
-                                await deleteDocumentPermanently(doc.id);
-                                setConfirmDeleteId(null);
-                                await onRefresh();
-                              } catch (err) {
-                                setError(
-                                  err instanceof Error ? err.message : 'Permanent delete failed.'
-                                );
-                              } finally {
-                                setBusyId(null);
-                              }
-                            }}
-                            className="rounded-md bg-red-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-red-700"
+                            onClick={() => onInspectDocument(doc)}
+                            className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50"
                           >
-                            Confirm Delete
+                            <Eye className="h-3.5 w-3.5" />
+                            Inspect
                           </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => setConfirmDeleteId(doc.id)}
-                            className="inline-flex items-center gap-1 rounded-md border border-red-200 px-2.5 py-1 text-xs font-semibold text-red-700 hover:bg-red-50"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                            Delete
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                          {canManage && (
+                            <>
+                              <button
+                                type="button"
+                                disabled={busyId === doc.id}
+                                onClick={async () => {
+                                  setBusyId(doc.id);
+                                  setError(null);
+                                  try {
+                                    await transitionWorkflow(doc.id, 'restore');
+                                    await onRefresh();
+                                  } catch (err) {
+                                    setError(err instanceof Error ? err.message : 'Restore failed.');
+                                  } finally {
+                                    setBusyId(null);
+                                  }
+                                }}
+                                className="inline-flex items-center gap-1 rounded-md bg-llcc-navy px-2.5 py-1 text-xs font-semibold text-white hover:bg-llcc-royal disabled:opacity-60"
+                              >
+                                <RotateCcw className="h-3.5 w-3.5" />
+                                Restore
+                              </button>
+                              {confirmDeleteId === doc.id ? (
+                                <button
+                                  type="button"
+                                  disabled={busyId === doc.id}
+                                  onClick={async () => {
+                                    setBusyId(doc.id);
+                                    setError(null);
+                                    try {
+                                      await deleteDocumentPermanently(doc.id);
+                                      setConfirmDeleteId(null);
+                                      await onRefresh();
+                                    } catch (err) {
+                                      setError(
+                                        err instanceof Error ? err.message : 'Permanent delete failed.'
+                                      );
+                                    } finally {
+                                      setBusyId(null);
+                                    }
+                                  }}
+                                  className="rounded-md bg-red-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-red-700"
+                                >
+                                  Confirm Delete
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => setConfirmDeleteId(doc.id)}
+                                  className="inline-flex items-center gap-1 rounded-md border border-red-200 px-2.5 py-1 text-xs font-semibold text-red-700 hover:bg-red-50"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                  Delete
+                                </button>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

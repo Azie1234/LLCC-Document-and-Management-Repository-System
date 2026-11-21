@@ -39,12 +39,108 @@ import { hashPassword, loadUserAccountById, verifyPassword } from './auth.ts';
 import { ensureSeeded, getRoleIdBySlug } from './seed.ts';
 import { deleteStoredFile, saveFileBuffer } from './storage.ts';
 
+export class ForbiddenError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ForbiddenError';
+  }
+}
+
 function slugify(value: string): string {
   return value
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
+}
+
+type ShareRow = typeof documentShares.$inferSelect;
+type DocRow = typeof documents.$inferSelect;
+
+function getSharePermissionsForUser(
+  shares: ShareRow[],
+  actor: UserAccount
+): { canView: boolean; canDownload: boolean; canEdit: boolean } {
+  const now = Date.now();
+  let canView = false;
+  let canDownload = false;
+  let canEdit = false;
+
+  for (const s of shares) {
+    if (s.revokedAt) continue;
+    if (s.expiresAt && s.expiresAt.getTime() < now) continue;
+    const matches =
+      s.targetUserId === actor.id ||
+      (actor.departmentId !== null && s.targetDepartmentId === actor.departmentId) ||
+      s.targetRoleSlug === actor.roleSlug;
+    if (!matches) continue;
+
+    canView = true;
+    if (s.permission === 'download' || s.permission === 'edit') {
+      canDownload = true;
+    }
+    if (s.permission === 'edit') {
+      canEdit = true;
+    }
+  }
+
+  return { canView, canDownload, canEdit };
+}
+
+function canUserAccessDocRow(
+  actor: UserAccount,
+  doc: DocRow,
+  shares: ShareRow[]
+): boolean {
+  const share = getSharePermissionsForUser(shares, actor);
+  if (actor.roleSlug === 'super_admin' || actor.roleSlug === 'dean') {
+    return true;
+  }
+  if (actor.roleSlug === 'department_head') {
+    return (actor.departmentId !== null && doc.departmentId === actor.departmentId) || share.canView;
+  }
+  if (actor.roleSlug === 'staff') {
+    if (share.canView) return true;
+    if (doc.uploadedById === actor.id) return true;
+    if (actor.departmentId !== null && doc.departmentId === actor.departmentId) {
+      return doc.confidentiality !== 'Confidential';
+    }
+    return false;
+  }
+  // student
+  return (doc.status === 'Approved' && doc.confidentiality === 'Internal') || share.canView;
+}
+
+function canUserModifyDocRow(
+  actor: UserAccount,
+  doc: DocRow,
+  shares: ShareRow[]
+): boolean {
+  if (actor.roleSlug === 'super_admin') return true;
+  if (actor.roleSlug === 'dean' || actor.roleSlug === 'student') return false;
+  if (actor.roleSlug === 'department_head') {
+    return actor.departmentId !== null && doc.departmentId === actor.departmentId;
+  }
+  // staff
+  if (doc.uploadedById === actor.id) return true;
+  const share = getSharePermissionsForUser(shares, actor);
+  return share.canEdit;
+}
+
+function canUserApproveDocRow(actor: UserAccount, doc: DocRow): boolean {
+  if (actor.roleSlug === 'super_admin' || actor.roleSlug === 'dean') return true;
+  if (actor.roleSlug === 'department_head') {
+    return actor.departmentId !== null && doc.departmentId === actor.departmentId;
+  }
+  return false;
+}
+
+function canUserArchiveOrDeleteDocRow(actor: UserAccount, doc: DocRow): boolean {
+  if (actor.roleSlug === 'super_admin') return true;
+  if (actor.roleSlug === 'department_head') {
+    return actor.departmentId !== null && doc.departmentId === actor.departmentId;
+  }
+  return false;
 }
 
 async function logActivity(params: {
@@ -218,7 +314,7 @@ export async function authenticateWithFirebaseToken(params: {
         })
         .where(eq(users.id, userId));
     } else {
-      const roleSlug = cleanEmail.endsWith('@llcc.edu.ph') ? 'faculty_staff' : 'student';
+      const roleSlug = cleanEmail.endsWith('@llcc.edu.ph') ? 'staff' : 'student';
       const roleId = await getRoleIdBySlug(roleSlug);
       const deptRows = await db.select().from(departments).limit(1);
       const baseUsername = slugify(cleanEmail.split('@')[0] || 'user') || `user${Date.now()}`;
@@ -447,11 +543,15 @@ export async function getBootstrapForUser(currentUser: UserAccount): Promise<Boo
 
     const catMap = new Map<number, DocumentCategory>();
     const mappedCats: DocumentCategory[] = catRows.map((c) => {
+      const catDept = c.departmentId ? deptMap.get(c.departmentId) : undefined;
       const mapped: DocumentCategory = {
         id: c.id,
         slug: c.slug,
         name: c.name,
         description: c.description,
+        departmentId: c.departmentId ?? null,
+        departmentCode: catDept?.code ?? null,
+        departmentName: catDept?.name ?? null,
         isSystem: c.isSystem,
         createdAt: c.createdAt.toISOString(),
       };
@@ -535,40 +635,27 @@ export async function getBootstrapForUser(currentUser: UserAccount): Promise<Boo
       commentsByDoc.set(c.documentId, list);
     }
 
-    const now = Date.now();
-    const isAdmin = currentUser.roleSlug === 'super_admin' || currentUser.roleSlug === 'admin';
-    const isStudent = currentUser.roleSlug === 'student';
+    const rawSharesByDoc = new Map<number, ShareRow[]>();
+    for (const s of shareRows) {
+      const list = rawSharesByDoc.get(s.documentId) ?? [];
+      list.push(s);
+      rawSharesByDoc.set(s.documentId, list);
+    }
 
     const mappedDocs: DocumentRecord[] = [];
-    for (const d of docRows) {
-      const docShares = sharesByDoc.get(d.id) ?? [];
-      const activeShareForUser = docShares.some((s) => {
-        if (s.revokedAt) return false;
-        if (s.expiresAt && new Date(s.expiresAt).getTime() < now) return false;
-        return (
-          s.targetUserId === currentUser.id ||
-          (currentUser.departmentId !== null && s.targetDepartmentId === currentUser.departmentId) ||
-          s.targetRoleSlug === currentUser.roleSlug
-        );
-      });
+    const accessibleDocIds = new Set<string>();
+    const deptDocIdSet = new Set<string>();
 
-      const isOwner = d.uploadedById === currentUser.id;
-      let canSee = false;
-      if (isAdmin) {
-        canSee = true;
-      } else if (isStudent) {
-        canSee =
-          (d.status === 'Approved' && d.confidentiality === 'Internal') || activeShareForUser;
-      } else {
-        canSee =
-          d.confidentiality !== 'Confidential' ||
-          isOwner ||
-          activeShareForUser ||
-          d.departmentId === currentUser.departmentId;
+    for (const d of docRows) {
+      if (currentUser.departmentId !== null && d.departmentId === currentUser.departmentId) {
+        deptDocIdSet.add(String(d.id));
       }
 
-      if (!canSee) continue;
+      const rawDocShares = rawSharesByDoc.get(d.id) ?? [];
+      if (!canUserAccessDocRow(currentUser, d, rawDocShares)) continue;
 
+      accessibleDocIds.add(String(d.id));
+      const docShares = sharesByDoc.get(d.id) ?? [];
       const cat = catMap.get(d.categoryId);
       const dept = deptMap.get(d.departmentId);
       const owner = userMap.get(d.uploadedById);
@@ -581,8 +668,8 @@ export async function getBootstrapForUser(currentUser: UserAccount): Promise<Boo
         categoryId: d.categoryId,
         categoryName: cat?.name ?? 'Other Documents',
         departmentId: d.departmentId,
-        departmentCode: dept?.code ?? 'GEN',
-        departmentName: dept?.name ?? 'General Office',
+        departmentCode: dept?.code ?? 'COT',
+        departmentName: dept?.name ?? 'College of Technology',
         documentType: d.documentType,
         academicYear: d.academicYear,
         uploadedById: d.uploadedById,
@@ -617,7 +704,32 @@ export async function getBootstrapForUser(currentUser: UserAccount): Promise<Boo
       description: r.description,
     }));
 
-    const mappedLogs: ActivityLogEntry[] = logRows.map((l) => ({
+    const deptUserIds = new Set(
+      mappedUsers
+        .filter((u) => currentUser.departmentId !== null && u.departmentId === currentUser.departmentId)
+        .map((u) => u.id)
+    );
+
+    const visibleLogRows = logRows.filter((l) => {
+      if (currentUser.roleSlug === 'super_admin' || currentUser.roleSlug === 'dean') {
+        return true;
+      }
+      if (currentUser.roleSlug === 'department_head') {
+        if (l.targetType === 'document' || l.targetType === 'share') {
+          return deptDocIdSet.has(l.targetId) || accessibleDocIds.has(l.targetId);
+        }
+        return l.userId === currentUser.id || (l.userId !== null && deptUserIds.has(l.userId));
+      }
+      if (currentUser.roleSlug === 'staff') {
+        if (l.targetType === 'document' || l.targetType === 'share') {
+          return accessibleDocIds.has(l.targetId);
+        }
+        return l.userId === currentUser.id;
+      }
+      return l.userId === currentUser.id;
+    });
+
+    const mappedLogs: ActivityLogEntry[] = visibleLogRows.map((l) => ({
       id: l.id,
       userId: l.userId,
       actorName: l.actorName,
@@ -682,12 +794,29 @@ export async function createDocumentRecord(
   ipAddress: string
 ): Promise<{ id: number; docCode: string }> {
   try {
+    if (actor.roleSlug === 'student' || actor.roleSlug === 'dean') {
+      throw new ForbiddenError('Your role is not authorized to upload new department documents.');
+    }
+
+    if (actor.roleSlug === 'department_head' && actor.departmentId !== input.departmentId) {
+      throw new ForbiddenError(
+        'Cross-department upload denied: Department Heads must publish within their assigned department.'
+      );
+    }
+
+    if (input.status === 'Approved' && actor.roleSlug === 'staff') {
+      throw new ForbiddenError('Staff submissions must go through Department Head or Dean approval.');
+    }
+
     const deptRows = await db
       .select()
       .from(departments)
       .where(eq(departments.id, input.departmentId))
       .limit(1);
-    const deptCode = deptRows[0]?.code ?? 'GEN';
+    if (!deptRows[0]) {
+      throw new Error('Selected department (COT, HTM, or EDUC) does not exist.');
+    }
+    const deptCode = deptRows[0].code;
     const year = new Date().getFullYear();
 
     const countRes = await db.select({ count: sql<number>`count(*)::int` }).from(documents);
@@ -779,27 +908,34 @@ export async function createDocumentRecord(
     });
 
     if (input.status === 'Pending') {
-      const admins = await db
-        .select({ id: users.id })
+      const reviewers = await db
+        .select({ id: users.id, roleSlug: roles.slug, departmentId: users.departmentId })
         .from(users)
         .innerJoin(roles, eq(users.roleId, roles.id))
-        .where(or(eq(roles.slug, 'super_admin'), eq(roles.slug, 'admin')));
+        .where(
+          or(
+            eq(roles.slug, 'super_admin'),
+            eq(roles.slug, 'dean'),
+            eq(roles.slug, 'department_head')
+          )
+        );
 
-      for (const admin of admins) {
-        if (admin.id !== actor.id) {
-          await createNotification({
-            userId: admin.id,
-            type: 'approval_request',
-            title: 'New Approval Request',
-            message: `${actor.fullName} submitted ${inserted.docCode} for review.`,
-            documentId: inserted.id,
-          });
-        }
+      for (const rev of reviewers) {
+        if (rev.id === actor.id) continue;
+        if (rev.roleSlug === 'department_head' && rev.departmentId !== input.departmentId) continue;
+        await createNotification({
+          userId: rev.id,
+          type: 'approval_request',
+          title: `${deptCode} Approval Request`,
+          message: `${actor.fullName} submitted ${inserted.docCode} (${inserted.title}) for review.`,
+          documentId: inserted.id,
+        });
       }
     }
 
     return { id: inserted.id, docCode: inserted.docCode };
   } catch (err) {
+    if (err instanceof ForbiddenError) throw err;
     console.error('Failed to create document:', err);
     throw new Error('Failed to upload and save document.', { cause: err });
   }
@@ -826,13 +962,21 @@ export async function updateDocumentMetadataRecord(
     const doc = existing[0];
     if (!doc) throw new Error('Document not found.');
 
+    const shares = await db.select().from(documentShares).where(eq(documentShares.documentId, docId));
+    if (!canUserModifyDocRow(actor, doc, shares)) {
+      throw new ForbiddenError('You are not authorized to modify this document.');
+    }
+
+    const nextDeptId =
+      actor.roleSlug === 'super_admin' ? input.departmentId : doc.departmentId;
+
     await db
       .update(documents)
       .set({
         title: input.title.trim(),
         description: input.description.trim(),
         categoryId: input.categoryId,
-        departmentId: input.departmentId,
+        departmentId: nextDeptId,
         documentType: input.documentType.trim(),
         academicYear: input.academicYear.trim(),
         confidentiality: input.confidentiality,
@@ -855,6 +999,7 @@ export async function updateDocumentMetadataRecord(
       ipAddress,
     });
   } catch (err) {
+    if (err instanceof ForbiddenError) throw err;
     if (err instanceof Error && err.message === 'Document not found.') throw err;
     console.error('Metadata update failed:', err);
     throw new Error('Failed to update document details.', { cause: err });
@@ -878,6 +1023,11 @@ export async function addDocumentVersionRecord(
     const existing = await db.select().from(documents).where(eq(documents.id, docId)).limit(1);
     const doc = existing[0];
     if (!doc) throw new Error('Document not found.');
+
+    const shares = await db.select().from(documentShares).where(eq(documentShares.documentId, docId));
+    if (!canUserModifyDocRow(actor, doc, shares)) {
+      throw new ForbiddenError('You are not authorized to upload new versions for this document.');
+    }
 
     const parts = doc.currentVersion.split('.');
     const major = Number.parseInt(parts[0] || '1', 10) || 1;
@@ -930,6 +1080,7 @@ export async function addDocumentVersionRecord(
 
     return nextVersion;
   } catch (err) {
+    if (err instanceof ForbiddenError) throw err;
     if (err instanceof Error && err.message === 'Document not found.') throw err;
     console.error('Version upload failed:', err);
     throw new Error('Failed to upload new file version.', { cause: err });
@@ -947,6 +1098,25 @@ export async function transitionDocumentWorkflowRecord(
     const existing = await db.select().from(documents).where(eq(documents.id, docId)).limit(1);
     const doc = existing[0];
     if (!doc) throw new Error('Document not found.');
+
+    if (action === 'submit') {
+      const shares = await db.select().from(documentShares).where(eq(documentShares.documentId, docId));
+      if (!canUserModifyDocRow(actor, doc, shares)) {
+        throw new ForbiddenError('You can only submit documents belonging to your department.');
+      }
+    } else if (action === 'start_review' || action === 'approve' || action === 'reject') {
+      if (!canUserApproveDocRow(actor, doc)) {
+        throw new ForbiddenError(
+          'Only the Academic Dean, assigned Department Head, or Super Admin can review or approve this document.'
+        );
+      }
+    } else if (action === 'archive' || action === 'restore') {
+      if (!canUserArchiveOrDeleteDocRow(actor, doc)) {
+        throw new ForbiddenError(
+          'Only the assigned Department Head or Super Admin can archive or restore this department document.'
+        );
+      }
+    }
 
     const prevStatus = doc.status as DocumentStatus;
     let nextStatus: DocumentStatus = prevStatus;
@@ -1032,26 +1202,33 @@ export async function transitionDocumentWorkflowRecord(
     }
 
     if (action === 'submit') {
-      const admins = await db
-        .select({ id: users.id })
+      const reviewers = await db
+        .select({ id: users.id, roleSlug: roles.slug, departmentId: users.departmentId })
         .from(users)
         .innerJoin(roles, eq(users.roleId, roles.id))
-        .where(or(eq(roles.slug, 'super_admin'), eq(roles.slug, 'admin')));
-      for (const admin of admins) {
-        if (admin.id !== actor.id) {
-          await createNotification({
-            userId: admin.id,
-            type: 'approval_request',
-            title: 'Pending Approval Request',
-            message: `${actor.fullName} submitted ${doc.docCode} (${doc.title}) for review.`,
-            documentId: doc.id,
-          });
-        }
+        .where(
+          or(
+            eq(roles.slug, 'super_admin'),
+            eq(roles.slug, 'dean'),
+            eq(roles.slug, 'department_head')
+          )
+        );
+      for (const rev of reviewers) {
+        if (rev.id === actor.id) continue;
+        if (rev.roleSlug === 'department_head' && rev.departmentId !== doc.departmentId) continue;
+        await createNotification({
+          userId: rev.id,
+          type: 'approval_request',
+          title: 'Pending Approval Request',
+          message: `${actor.fullName} submitted ${doc.docCode} (${doc.title}) for review.`,
+          documentId: doc.id,
+        });
       }
     }
 
     return nextStatus;
   } catch (err) {
+    if (err instanceof ForbiddenError) throw err;
     if (err instanceof Error && err.message === 'Document not found.') throw err;
     console.error('Workflow transition failed:', err);
     throw new Error('Failed to update workflow status.', { cause: err });
@@ -1067,6 +1244,9 @@ export async function deleteDocumentPermanentlyRecord(
     const existing = await db.select().from(documents).where(eq(documents.id, docId)).limit(1);
     const doc = existing[0];
     if (!doc) throw new Error('Document not found.');
+    if (!canUserArchiveOrDeleteDocRow(actor, doc)) {
+      throw new ForbiddenError('Only the owning Department Head or Super Admin can permanently delete this record.');
+    }
 
     const versions = await db
       .select()
@@ -1092,6 +1272,7 @@ export async function deleteDocumentPermanentlyRecord(
       ipAddress,
     });
   } catch (err) {
+    if (err instanceof ForbiddenError) throw err;
     if (err instanceof Error && err.message === 'Document not found.') throw err;
     console.error('Permanent document delete failed:', err);
     throw new Error('Failed to delete document.', { cause: err });
@@ -1114,6 +1295,11 @@ export async function createDocumentShareRecord(
     const existing = await db.select().from(documents).where(eq(documents.id, docId)).limit(1);
     const doc = existing[0];
     if (!doc) throw new Error('Document not found.');
+
+    const shares = await db.select().from(documentShares).where(eq(documentShares.documentId, docId));
+    if (!canUserModifyDocRow(actor, doc, shares) && actor.roleSlug !== 'dean') {
+      throw new ForbiddenError('You are not authorized to share this document.');
+    }
 
     const expiry = input.expiresAt ? new Date(input.expiresAt) : null;
     await db.insert(documentShares).values({
@@ -1149,6 +1335,7 @@ export async function createDocumentShareRecord(
       });
     }
   } catch (err) {
+    if (err instanceof ForbiddenError) throw err;
     if (err instanceof Error && err.message === 'Document not found.') throw err;
     console.error('Failed to share document:', err);
     throw new Error('Failed to share document.', { cause: err });
@@ -1169,17 +1356,26 @@ export async function revokeDocumentShareRecord(
     const share = rows[0];
     if (!share) throw new Error('Share link not found.');
 
-    await db
-      .update(documentShares)
-      .set({ revokedAt: new Date() })
-      .where(eq(documentShares.id, shareId));
-
     const docRows = await db
       .select()
       .from(documents)
       .where(eq(documents.id, share.documentId))
       .limit(1);
     const doc = docRows[0];
+    if (!doc) throw new Error('Document not found.');
+
+    const canRevoke =
+      actor.roleSlug === 'super_admin' ||
+      share.sharedById === actor.id ||
+      (actor.roleSlug === 'department_head' && doc.departmentId === actor.departmentId);
+    if (!canRevoke) {
+      throw new ForbiddenError('You are not authorized to revoke this share.');
+    }
+
+    await db
+      .update(documentShares)
+      .set({ revokedAt: new Date() })
+      .where(eq(documentShares.id, shareId));
 
     await logActivity({
       userId: actor.id,
@@ -1188,13 +1384,14 @@ export async function revokeDocumentShareRecord(
       action: 'SHARE_REVOKED',
       targetType: 'share',
       targetId: String(share.documentId),
-      targetRef: doc?.docCode ?? 'SHARE',
-      targetTitle: doc?.title ?? 'Shared Document',
+      targetRef: doc.docCode,
+      targetTitle: doc.title,
       details: `Revoked sharing permission #${shareId}.`,
       ipAddress,
     });
   } catch (err) {
-    if (err instanceof Error && err.message === 'Share link not found.') throw err;
+    if (err instanceof ForbiddenError) throw err;
+    if (err instanceof Error && (err.message === 'Share link not found.' || err.message === 'Document not found.')) throw err;
     console.error('Failed to revoke share:', err);
     throw new Error('Failed to revoke share access.', { cause: err });
   }
@@ -1210,6 +1407,11 @@ export async function addDocumentCommentRecord(
     const existing = await db.select().from(documents).where(eq(documents.id, docId)).limit(1);
     const doc = existing[0];
     if (!doc) throw new Error('Document not found.');
+
+    const shares = await db.select().from(documentShares).where(eq(documentShares.documentId, docId));
+    if (!canUserAccessDocRow(actor, doc, shares)) {
+      throw new ForbiddenError('You do not have access to comment on this document.');
+    }
 
     await db.insert(documentComments).values({
       documentId: docId,
@@ -1230,6 +1432,7 @@ export async function addDocumentCommentRecord(
       ipAddress,
     });
   } catch (err) {
+    if (err instanceof ForbiddenError) throw err;
     if (err instanceof Error && err.message === 'Document not found.') throw err;
     console.error('Failed to add comment:', err);
     throw new Error('Failed to post comment.', { cause: err });
@@ -1237,8 +1440,11 @@ export async function addDocumentCommentRecord(
 }
 
 export async function getDocumentFilePayload(
+  actor: UserAccount,
   docId: number,
-  requestedVersion?: string
+  requestedVersion: string | undefined,
+  mode: 'view' | 'download',
+  ipAddress: string
 ): Promise<{
   doc: typeof documents.$inferSelect;
   version: typeof documentVersions.$inferSelect;
@@ -1247,6 +1453,31 @@ export async function getDocumentFilePayload(
     const docRows = await db.select().from(documents).where(eq(documents.id, docId)).limit(1);
     const doc = docRows[0];
     if (!doc) return null;
+
+    const shares = await db.select().from(documentShares).where(eq(documentShares.documentId, docId));
+    if (!canUserAccessDocRow(actor, doc, shares)) {
+      await logActivity({
+        userId: actor.id,
+        actorName: actor.fullName,
+        actorRole: actor.roleName,
+        action: 'ACCESS_DENIED',
+        targetType: 'document',
+        targetId: String(doc.id),
+        targetRef: doc.docCode,
+        targetTitle: doc.title,
+        details: `Blocked unauthorized cross-department or private access attempt.`,
+        ipAddress,
+      });
+      throw new ForbiddenError('Access denied: you do not have permission to view this document.');
+    }
+
+    if (mode === 'download' && actor.roleSlug === 'student') {
+      const share = getSharePermissionsForUser(shares, actor);
+      const publicApproved = doc.status === 'Approved' && doc.confidentiality === 'Internal';
+      if (!publicApproved && !share.canDownload) {
+        throw new ForbiddenError('This shared document is restricted to view-only access.');
+      }
+    }
 
     const verRows = await db
       .select()
@@ -1273,6 +1504,7 @@ export async function getDocumentFilePayload(
     if (!version) return null;
     return { doc, version };
   } catch (err) {
+    if (err instanceof ForbiddenError) throw err;
     console.error('Failed to retrieve file payload:', err);
     throw new Error('Failed to retrieve file version.', { cause: err });
   }
@@ -1318,15 +1550,31 @@ export async function recordDocumentFileAccess(
 
 export async function createCategoryRecord(
   actor: UserAccount,
-  input: { name: string; description: string },
+  input: { name: string; description: string; departmentId?: number | null },
   ipAddress: string
 ): Promise<void> {
   try {
+    let targetDeptId = input.departmentId ?? null;
+    if (actor.roleSlug === 'department_head') {
+      if (!actor.departmentId) {
+        throw new ForbiddenError('Department Head must belong to an assigned department.');
+      }
+      targetDeptId = actor.departmentId;
+    } else if (actor.roleSlug !== 'super_admin') {
+      throw new ForbiddenError('Only Super Admin or Department Heads can create categories.');
+    }
+
     const name = input.name.trim();
-    const slug = slugify(name);
+    const slug = slugify(targetDeptId ? `${targetDeptId}-${name}` : name);
     const [created] = await db
       .insert(documentCategories)
-      .values({ slug, name, description: input.description.trim(), isSystem: false })
+      .values({
+        slug,
+        name,
+        description: input.description.trim(),
+        departmentId: targetDeptId,
+        isSystem: false,
+      })
       .returning();
 
     await logActivity({
@@ -1342,6 +1590,7 @@ export async function createCategoryRecord(
       ipAddress,
     });
   } catch (err) {
+    if (err instanceof ForbiddenError) throw err;
     console.error('Failed to create category:', err);
     throw new Error('Failed to create category. Name may already exist.', { cause: err });
   }
@@ -1350,14 +1599,40 @@ export async function createCategoryRecord(
 export async function updateCategoryRecord(
   actor: UserAccount,
   id: number,
-  input: { name: string; description: string },
+  input: { name: string; description: string; departmentId?: number | null },
   ipAddress: string
 ): Promise<void> {
   try {
+    const existing = await db
+      .select()
+      .from(documentCategories)
+      .where(eq(documentCategories.id, id))
+      .limit(1);
+    const cat = existing[0];
+    if (!cat) throw new Error('Category not found.');
+
+    if (actor.roleSlug === 'department_head') {
+      if (cat.departmentId !== actor.departmentId) {
+        throw new ForbiddenError('Department Heads can only edit categories belonging to their own department.');
+      }
+    } else if (actor.roleSlug !== 'super_admin') {
+      throw new ForbiddenError('Only Super Admin or owning Department Heads can edit categories.');
+    }
+
     const name = input.name.trim();
+    const nextDeptId =
+      actor.roleSlug === 'super_admin' && input.departmentId !== undefined
+        ? input.departmentId
+        : cat.departmentId;
+
     await db
       .update(documentCategories)
-      .set({ name, slug: slugify(name), description: input.description.trim() })
+      .set({
+        name,
+        slug: slugify(nextDeptId ? `${nextDeptId}-${name}` : name),
+        description: input.description.trim(),
+        departmentId: nextDeptId,
+      })
       .where(eq(documentCategories.id, id));
 
     await logActivity({
@@ -1373,6 +1648,8 @@ export async function updateCategoryRecord(
       ipAddress,
     });
   } catch (err) {
+    if (err instanceof ForbiddenError) throw err;
+    if (err instanceof Error && err.message === 'Category not found.') throw err;
     console.error('Failed to update category:', err);
     throw new Error('Failed to update category.', { cause: err });
   }
@@ -1384,6 +1661,22 @@ export async function deleteCategoryRecord(
   ipAddress: string
 ): Promise<void> {
   try {
+    const existing = await db
+      .select()
+      .from(documentCategories)
+      .where(eq(documentCategories.id, id))
+      .limit(1);
+    const cat = existing[0];
+    if (!cat) throw new Error('Category not found.');
+
+    if (actor.roleSlug === 'department_head') {
+      if (cat.departmentId !== actor.departmentId) {
+        throw new ForbiddenError('Department Heads can only delete categories belonging to their own department.');
+      }
+    } else if (actor.roleSlug !== 'super_admin') {
+      throw new ForbiddenError('Only Super Admin or owning Department Heads can delete categories.');
+    }
+
     const inUse = await db
       .select({ id: documents.id })
       .from(documents)
@@ -1392,13 +1685,6 @@ export async function deleteCategoryRecord(
     if (inUse.length > 0) {
       throw new Error('Cannot delete category while documents are assigned to it.');
     }
-    const existing = await db
-      .select()
-      .from(documentCategories)
-      .where(eq(documentCategories.id, id))
-      .limit(1);
-    const cat = existing[0];
-    if (!cat) throw new Error('Category not found.');
 
     await db.delete(documentCategories).where(eq(documentCategories.id, id));
 
@@ -1415,6 +1701,7 @@ export async function deleteCategoryRecord(
       ipAddress,
     });
   } catch (err) {
+    if (err instanceof ForbiddenError) throw err;
     if (err instanceof Error && (err.message.includes('Cannot delete') || err.message.includes('not found'))) {
       throw err;
     }
@@ -1562,6 +1849,17 @@ export async function createUserRecord(
   ipAddress: string
 ): Promise<void> {
   try {
+    if (actor.roleSlug === 'department_head') {
+      if (input.roleSlug !== 'staff' && input.roleSlug !== 'student') {
+        throw new ForbiddenError('Department Heads can only create Staff or Student accounts.');
+      }
+      if (!actor.departmentId || input.departmentId !== actor.departmentId) {
+        throw new ForbiddenError('Department Heads can only provision users within their assigned department.');
+      }
+    } else if (actor.roleSlug !== 'super_admin') {
+      throw new ForbiddenError('Only Super Admin or Department Heads can create user accounts.');
+    }
+
     const roleId = await getRoleIdBySlug(input.roleSlug);
     const passwordHash = await hashPassword(input.password);
     const [created] = await db
@@ -1590,6 +1888,7 @@ export async function createUserRecord(
       ipAddress,
     });
   } catch (err) {
+    if (err instanceof ForbiddenError) throw err;
     console.error('Failed to create user:', err);
     throw new Error('Failed to create user. Email or username may already be registered.', { cause: err });
   }
@@ -1612,6 +1911,23 @@ export async function updateUserRecord(
   try {
     const existing = await loadUserAccountById(userId);
     if (!existing) throw new Error('User account not found.');
+
+    if (actor.roleSlug === 'department_head') {
+      if (existing.departmentId !== actor.departmentId) {
+        throw new ForbiddenError('You can only manage users assigned to your department.');
+      }
+      if (existing.roleSlug !== 'staff' && existing.roleSlug !== 'student') {
+        throw new ForbiddenError('Department Heads cannot modify executive or Dean accounts.');
+      }
+      if (input.roleSlug && input.roleSlug !== 'staff' && input.roleSlug !== 'student') {
+        throw new ForbiddenError('Department Heads can only assign Staff or Student roles.');
+      }
+      if (input.departmentId !== undefined && input.departmentId !== actor.departmentId) {
+        throw new ForbiddenError('Department Heads cannot reassign users to another department.');
+      }
+    } else if (actor.roleSlug !== 'super_admin') {
+      throw new ForbiddenError('Only Super Admin or Department Heads can update user accounts.');
+    }
 
     const updates: Partial<typeof users.$inferInsert> = {
       updatedAt: new Date(),
@@ -1650,6 +1966,7 @@ export async function updateUserRecord(
       message: `Your user profile or permissions were updated by ${actor.fullName}.`,
     });
   } catch (err) {
+    if (err instanceof ForbiddenError) throw err;
     if (err instanceof Error && err.message === 'User account not found.') throw err;
     console.error('Failed to update user:', err);
     throw new Error('Failed to update user account.', { cause: err });
@@ -1667,6 +1984,17 @@ export async function deleteUserRecord(
     }
     const existing = await loadUserAccountById(userId);
     if (!existing) throw new Error('User account not found.');
+
+    if (actor.roleSlug === 'department_head') {
+      if (
+        existing.departmentId !== actor.departmentId ||
+        (existing.roleSlug !== 'staff' && existing.roleSlug !== 'student')
+      ) {
+        throw new ForbiddenError('Department Heads can only remove Staff or Student accounts in their own department.');
+      }
+    } else if (actor.roleSlug !== 'super_admin') {
+      throw new ForbiddenError('Only Super Admin or Department Heads can delete user accounts.');
+    }
 
     const ownedDocs = await db
       .select({ id: documents.id })
@@ -1704,6 +2032,7 @@ export async function deleteUserRecord(
       ipAddress,
     });
   } catch (err) {
+    if (err instanceof ForbiddenError) throw err;
     if (err instanceof Error && (err.message.includes('cannot delete') || err.message.includes('not found'))) {
       throw err;
     }
@@ -1884,14 +2213,43 @@ export async function updateSystemSettingsRecord(
   }
 }
 
-export async function exportActivityLogsCsv(): Promise<string> {
+export async function exportActivityLogsCsv(actor: UserAccount): Promise<string> {
   try {
     await ensureSeeded();
-    const rows = await db
-      .select()
-      .from(activityLogs)
-      .orderBy(desc(activityLogs.createdAt))
-      .limit(1000);
+    if (
+      actor.roleSlug !== 'super_admin' &&
+      actor.roleSlug !== 'dean' &&
+      actor.roleSlug !== 'department_head'
+    ) {
+      throw new ForbiddenError('Only Super Admin, Dean, or Department Heads can export activity logs.');
+    }
+
+    const [rows, docRows, deptUsers] = await Promise.all([
+      db.select().from(activityLogs).orderBy(desc(activityLogs.createdAt)).limit(1000),
+      actor.roleSlug === 'department_head' && actor.departmentId
+        ? db
+            .select({ id: documents.id })
+            .from(documents)
+            .where(eq(documents.departmentId, actor.departmentId))
+        : Promise.resolve([]),
+      actor.roleSlug === 'department_head' && actor.departmentId
+        ? db.select({ id: users.id }).from(users).where(eq(users.departmentId, actor.departmentId))
+        : Promise.resolve([]),
+    ]);
+
+    const deptDocIds = new Set(docRows.map((d) => String(d.id)));
+    const deptUserIds = new Set(deptUsers.map((u) => u.id));
+
+    const scopedRows =
+      actor.roleSlug === 'department_head'
+        ? rows.filter((r) => {
+            if (r.targetType === 'document' || r.targetType === 'share') {
+              return deptDocIds.has(r.targetId);
+            }
+            return r.userId === actor.id || (r.userId !== null && deptUserIds.has(r.userId));
+          })
+        : rows;
+
     const escapeCsv = (val: string) => `"${String(val).replaceAll('"', '""')}"`;
     const header = [
       'Timestamp',
@@ -1903,7 +2261,7 @@ export async function exportActivityLogsCsv(): Promise<string> {
       'Details',
       'IP Address',
     ].join(',');
-    const lines = rows.map((r) =>
+    const lines = scopedRows.map((r) =>
       [
         escapeCsv(r.createdAt.toISOString()),
         escapeCsv(r.actorName),
@@ -1917,6 +2275,7 @@ export async function exportActivityLogsCsv(): Promise<string> {
     );
     return [header, ...lines].join('\n');
   } catch (err) {
+    if (err instanceof ForbiddenError) throw err;
     console.error('Audit CSV export failed:', err);
     throw new Error('Failed to export activity logs.', { cause: err });
   }

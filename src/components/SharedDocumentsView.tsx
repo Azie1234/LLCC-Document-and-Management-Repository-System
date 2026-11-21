@@ -52,7 +52,7 @@ export function SharedDocumentsView({
         if (
           s.sharedById === currentUser.id ||
           currentUser.roleSlug === 'super_admin' ||
-          currentUser.roleSlug === 'admin'
+          (currentUser.roleSlug === 'department_head' && doc.departmentId === currentUser.departmentId)
         ) {
           if (!s.revokedAt) rows.push({ doc, share: s });
         }
@@ -179,7 +179,8 @@ export function SharedDocumentsView({
                           )}
                           {(share.sharedById === currentUser.id ||
                             currentUser.roleSlug === 'super_admin' ||
-                            currentUser.roleSlug === 'admin') && (
+                            (currentUser.roleSlug === 'department_head' &&
+                              doc.departmentId === currentUser.departmentId)) && (
                             <button
                               type="button"
                               disabled={busyShareId === share.id}

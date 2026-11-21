@@ -1,17 +1,20 @@
-import express from 'express';
+import express, { type Response } from 'express';
 import fs from 'node:fs';
 import path from 'node:path';
 import { createServer as createViteServer } from 'vite';
 import {
   type AuthenticatedRequest,
+  canApproveDocuments,
+  canManageDepartmentRepo,
   canUploadDocuments,
+  canViewActivityLogs,
   createSessionToken,
   getClientIp,
-  isAdminOrSuper,
   isSuperAdmin,
   requireAuth,
 } from './server/auth.ts';
 import {
+  ForbiddenError,
   addDocumentCommentRecord,
   addDocumentVersionRecord,
   authenticateWithCredentials,
@@ -46,6 +49,15 @@ import {
 } from './server/dbRepository.ts';
 import { getStoredFilePath } from './server/storage.ts';
 import { adminAuth } from './src/lib/firebase-admin.ts';
+
+function sendRouteError(res: Response, err: unknown, fallbackMessage: string, defaultStatus = 400): void {
+  if (err instanceof ForbiddenError) {
+    res.status(403).json({ error: err.message });
+    return;
+  }
+  const msg = err instanceof Error ? err.message : fallbackMessage;
+  res.status(defaultStatus).json({ error: msg });
+}
 
 async function startServer(): Promise<void> {
   const app = express();
@@ -82,7 +94,12 @@ async function startServer(): Promise<void> {
   app.post('/api/auth/login', async (req, res) => {
     try {
       const body = req.body ?? {};
-      const identifier = typeof body.identifier === 'string' ? body.identifier : typeof body.email === 'string' ? body.email : '';
+      const identifier =
+        typeof body.identifier === 'string'
+          ? body.identifier
+          : typeof body.email === 'string'
+            ? body.email
+            : '';
       const password = typeof body.password === 'string' ? body.password : '';
       const rememberMe = Boolean(body.rememberMe);
 
@@ -159,7 +176,7 @@ async function startServer(): Promise<void> {
       const data = await getBootstrapForUser(req.authUser!);
       res.json(data);
     } catch (err) {
-      res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to load data.' });
+      sendRouteError(res, err, 'Failed to load data.', 500);
     }
   });
 
@@ -167,7 +184,7 @@ async function startServer(): Promise<void> {
     try {
       const actor = req.authUser!;
       if (!canUploadDocuments(actor)) {
-        res.status(403).json({ error: 'Student accounts cannot upload repository documents.' });
+        res.status(403).json({ error: 'Your account role cannot upload repository documents.' });
         return;
       }
 
@@ -177,9 +194,9 @@ async function startServer(): Promise<void> {
         return;
       }
 
-      const requestedStatus = body.status || 'Draft';
-      if (requestedStatus === 'Approved' && !isAdminOrSuper(actor)) {
-        res.status(403).json({ error: 'Only Administrators can publish directly as Approved.' });
+      const requestedStatus = body.status || 'Pending';
+      if (requestedStatus === 'Approved' && !canApproveDocuments(actor)) {
+        res.status(403).json({ error: 'Only Department Heads or Super Admin can publish directly as Approved.' });
         return;
       }
 
@@ -214,7 +231,7 @@ async function startServer(): Promise<void> {
 
       res.status(201).json(created);
     } catch (err) {
-      res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to upload document.' });
+      sendRouteError(res, err, 'Failed to upload document.', 400);
     }
   });
 
@@ -222,7 +239,7 @@ async function startServer(): Promise<void> {
     try {
       const actor = req.authUser!;
       if (!canUploadDocuments(actor)) {
-        res.status(403).json({ error: 'Students cannot modify document metadata.' });
+        res.status(403).json({ error: 'Your role cannot modify document metadata.' });
         return;
       }
       const docId = Number(req.params.id);
@@ -245,7 +262,7 @@ async function startServer(): Promise<void> {
       );
       res.json({ ok: true });
     } catch (err) {
-      res.status(400).json({ error: err instanceof Error ? err.message : 'Failed to update metadata.' });
+      sendRouteError(res, err, 'Failed to update metadata.');
     }
   });
 
@@ -253,7 +270,7 @@ async function startServer(): Promise<void> {
     try {
       const actor = req.authUser!;
       if (!canUploadDocuments(actor)) {
-        res.status(403).json({ error: 'Students cannot upload new document revisions.' });
+        res.status(403).json({ error: 'Your role cannot upload new document revisions.' });
         return;
       }
       const docId = Number(req.params.id);
@@ -277,7 +294,7 @@ async function startServer(): Promise<void> {
       );
       res.status(201).json({ versionNumber });
     } catch (err) {
-      res.status(400).json({ error: err instanceof Error ? err.message : 'Failed to add version.' });
+      sendRouteError(res, err, 'Failed to add version.');
     }
   });
 
@@ -299,8 +316,13 @@ async function startServer(): Promise<void> {
           res.status(403).json({ error: 'Permission denied.' });
           return;
         }
-      } else if (!isAdminOrSuper(actor)) {
-        res.status(403).json({ error: 'Only Administrators can perform review, approval, or archive actions.' });
+      } else if (action === 'start_review' || action === 'approve' || action === 'reject') {
+        if (!canApproveDocuments(actor)) {
+          res.status(403).json({ error: 'Only the Dean, Department Head, or Super Admin can review or approve documents.' });
+          return;
+        }
+      } else if (!canManageDepartmentRepo(actor)) {
+        res.status(403).json({ error: 'Only the owning Department Head or Super Admin can archive or restore records.' });
         return;
       }
 
@@ -318,28 +340,28 @@ async function startServer(): Promise<void> {
       );
       res.json({ status });
     } catch (err) {
-      res.status(400).json({ error: err instanceof Error ? err.message : 'Workflow transition failed.' });
+      sendRouteError(res, err, 'Workflow transition failed.');
     }
   });
 
   app.delete('/api/documents/:id', requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
       const actor = req.authUser!;
-      if (!isAdminOrSuper(actor)) {
-        res.status(403).json({ error: 'Only Administrators can permanently delete documents.' });
+      if (!canManageDepartmentRepo(actor)) {
+        res.status(403).json({ error: 'Only Department Heads or Super Admin can permanently delete documents.' });
         return;
       }
       await deleteDocumentPermanentlyRecord(actor, Number(req.params.id), getClientIp(req));
       res.json({ ok: true });
     } catch (err) {
-      res.status(400).json({ error: err instanceof Error ? err.message : 'Delete failed.' });
+      sendRouteError(res, err, 'Delete failed.');
     }
   });
 
   app.post('/api/documents/:id/shares', requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
       const actor = req.authUser!;
-      if (!canUploadDocuments(actor)) {
+      if (!canUploadDocuments(actor) && actor.roleSlug !== 'dean') {
         res.status(403).json({ error: 'Students cannot create document shares.' });
         return;
       }
@@ -358,21 +380,21 @@ async function startServer(): Promise<void> {
       );
       res.status(201).json({ ok: true });
     } catch (err) {
-      res.status(400).json({ error: err instanceof Error ? err.message : 'Share failed.' });
+      sendRouteError(res, err, 'Share failed.');
     }
   });
 
   app.delete('/api/shares/:id', requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
       const actor = req.authUser!;
-      if (!canUploadDocuments(actor)) {
+      if (actor.roleSlug === 'student') {
         res.status(403).json({ error: 'Permission denied.' });
         return;
       }
       await revokeDocumentShareRecord(actor, Number(req.params.id), getClientIp(req));
       res.json({ ok: true });
     } catch (err) {
-      res.status(400).json({ error: err instanceof Error ? err.message : 'Failed to revoke share.' });
+      sendRouteError(res, err, 'Failed to revoke share.');
     }
   });
 
@@ -391,7 +413,7 @@ async function startServer(): Promise<void> {
       );
       res.status(201).json({ ok: true });
     } catch (err) {
-      res.status(400).json({ error: err instanceof Error ? err.message : 'Failed to add comment.' });
+      sendRouteError(res, err, 'Failed to add comment.');
     }
   });
 
@@ -399,7 +421,15 @@ async function startServer(): Promise<void> {
     try {
       const docId = Number(req.params.id);
       const requestedVersion = typeof req.query.version === 'string' ? req.query.version : undefined;
-      const payload = await getDocumentFilePayload(docId, requestedVersion);
+      const isInline = req.query.inline === '1';
+      const mode = isInline ? 'view' : 'download';
+      const payload = await getDocumentFilePayload(
+        req.authUser!,
+        docId,
+        requestedVersion,
+        mode,
+        getClientIp(req)
+      );
       if (!payload) {
         res.status(404).json({ error: 'Document file not found.' });
         return;
@@ -410,12 +440,11 @@ async function startServer(): Promise<void> {
         return;
       }
 
-      const isInline = req.query.inline === '1';
       await recordDocumentFileAccess(
         req.authUser ?? null,
         payload.doc,
         payload.version.versionNumber,
-        isInline ? 'view' : 'download',
+        mode,
         getClientIp(req)
       );
 
@@ -426,7 +455,7 @@ async function startServer(): Promise<void> {
       );
       res.sendFile(filePath);
     } catch (err) {
-      res.status(500).json({ error: err instanceof Error ? err.message : 'File retrieval error.' });
+      sendRouteError(res, err, 'File retrieval error.', 500);
     }
   });
 
@@ -434,7 +463,13 @@ async function startServer(): Promise<void> {
     try {
       const docId = Number(req.params.id);
       const requestedVersion = typeof req.query.version === 'string' ? req.query.version : undefined;
-      const payload = await getDocumentFilePayload(docId, requestedVersion);
+      const payload = await getDocumentFilePayload(
+        req.authUser!,
+        docId,
+        requestedVersion,
+        'view',
+        getClientIp(req)
+      );
       if (!payload) {
         res.status(404).json({ error: 'Document content not found.' });
         return;
@@ -460,14 +495,14 @@ async function startServer(): Promise<void> {
         mimeType: payload.version.mimeType,
       });
     } catch (err) {
-      res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to load preview.' });
+      sendRouteError(res, err, 'Failed to load preview.', 500);
     }
   });
 
   app.post('/api/categories', requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
-      if (!isAdminOrSuper(req.authUser!)) {
-        res.status(403).json({ error: 'Only Administrators can manage categories.' });
+      if (!canManageDepartmentRepo(req.authUser!)) {
+        res.status(403).json({ error: 'Only Super Admin or Department Heads can manage categories.' });
         return;
       }
       const body = req.body ?? {};
@@ -477,51 +512,59 @@ async function startServer(): Promise<void> {
       }
       await createCategoryRecord(
         req.authUser!,
-        { name: String(body.name), description: String(body.description || '') },
+        {
+          name: String(body.name),
+          description: String(body.description || ''),
+          departmentId: body.departmentId ? Number(body.departmentId) : null,
+        },
         getClientIp(req)
       );
       res.status(201).json({ ok: true });
     } catch (err) {
-      res.status(400).json({ error: err instanceof Error ? err.message : 'Failed to add category.' });
+      sendRouteError(res, err, 'Failed to add category.');
     }
   });
 
   app.patch('/api/categories/:id', requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
-      if (!isAdminOrSuper(req.authUser!)) {
-        res.status(403).json({ error: 'Only Administrators can edit categories.' });
+      if (!canManageDepartmentRepo(req.authUser!)) {
+        res.status(403).json({ error: 'Only Super Admin or Department Heads can edit categories.' });
         return;
       }
       const body = req.body ?? {};
       await updateCategoryRecord(
         req.authUser!,
         Number(req.params.id),
-        { name: String(body.name || ''), description: String(body.description || '') },
+        {
+          name: String(body.name || ''),
+          description: String(body.description || ''),
+          departmentId: body.departmentId !== undefined ? (body.departmentId ? Number(body.departmentId) : null) : undefined,
+        },
         getClientIp(req)
       );
       res.json({ ok: true });
     } catch (err) {
-      res.status(400).json({ error: err instanceof Error ? err.message : 'Failed to update category.' });
+      sendRouteError(res, err, 'Failed to update category.');
     }
   });
 
   app.delete('/api/categories/:id', requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
-      if (!isAdminOrSuper(req.authUser!)) {
-        res.status(403).json({ error: 'Only Administrators can delete categories.' });
+      if (!canManageDepartmentRepo(req.authUser!)) {
+        res.status(403).json({ error: 'Only Super Admin or Department Heads can delete categories.' });
         return;
       }
       await deleteCategoryRecord(req.authUser!, Number(req.params.id), getClientIp(req));
       res.json({ ok: true });
     } catch (err) {
-      res.status(400).json({ error: err instanceof Error ? err.message : 'Failed to delete category.' });
+      sendRouteError(res, err, 'Failed to delete category.');
     }
   });
 
   app.post('/api/departments', requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
-      if (!isAdminOrSuper(req.authUser!)) {
-        res.status(403).json({ error: 'Only Administrators can create departments.' });
+      if (!isSuperAdmin(req.authUser!)) {
+        res.status(403).json({ error: 'Only Super Administrators can create departments.' });
         return;
       }
       const body = req.body ?? {};
@@ -542,20 +585,22 @@ async function startServer(): Promise<void> {
       );
       res.status(201).json({ ok: true });
     } catch (err) {
-      res.status(400).json({ error: err instanceof Error ? err.message : 'Failed to add department.' });
+      sendRouteError(res, err, 'Failed to add department.');
     }
   });
 
   app.patch('/api/departments/:id', requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
-      if (!isAdminOrSuper(req.authUser!)) {
-        res.status(403).json({ error: 'Only Administrators can update departments.' });
+      const actor = req.authUser!;
+      const deptId = Number(req.params.id);
+      if (!isSuperAdmin(actor) && !(actor.roleSlug === 'department_head' && actor.departmentId === deptId)) {
+        res.status(403).json({ error: 'You can only update your own assigned department.' });
         return;
       }
       const body = req.body ?? {};
       await updateDepartmentRecord(
-        req.authUser!,
-        Number(req.params.id),
+        actor,
+        deptId,
         {
           code: body.code,
           name: body.name,
@@ -567,36 +612,32 @@ async function startServer(): Promise<void> {
       );
       res.json({ ok: true });
     } catch (err) {
-      res.status(400).json({ error: err instanceof Error ? err.message : 'Failed to update department.' });
+      sendRouteError(res, err, 'Failed to update department.');
     }
   });
 
   app.delete('/api/departments/:id', requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
-      if (!isAdminOrSuper(req.authUser!)) {
-        res.status(403).json({ error: 'Only Administrators can delete departments.' });
+      if (!isSuperAdmin(req.authUser!)) {
+        res.status(403).json({ error: 'Only Super Administrators can remove departments.' });
         return;
       }
       await deleteDepartmentRecord(req.authUser!, Number(req.params.id), getClientIp(req));
       res.json({ ok: true });
     } catch (err) {
-      res.status(400).json({ error: err instanceof Error ? err.message : 'Failed to delete department.' });
+      sendRouteError(res, err, 'Failed to delete department.');
     }
   });
 
   app.post('/api/users', requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
-      if (!isAdminOrSuper(req.authUser!)) {
-        res.status(403).json({ error: 'Only Administrators can create user accounts.' });
+      if (!canManageDepartmentRepo(req.authUser!)) {
+        res.status(403).json({ error: 'Only Super Admin or Department Heads can create user accounts.' });
         return;
       }
       const body = req.body ?? {};
       if (!body.fullName || !body.email || !body.username || !body.password) {
         res.status(400).json({ error: 'Full name, email, username, and password are required.' });
-        return;
-      }
-      if (body.roleSlug === 'super_admin' && !isSuperAdmin(req.authUser!)) {
-        res.status(403).json({ error: 'Only a Super Admin can assign the SUPER ADMIN role.' });
         return;
       }
       await createUserRecord(
@@ -606,28 +647,24 @@ async function startServer(): Promise<void> {
           email: body.email,
           username: body.username,
           password: body.password,
-          roleSlug: body.roleSlug || 'faculty_staff',
+          roleSlug: body.roleSlug || 'staff',
           departmentId: body.departmentId ? Number(body.departmentId) : null,
         },
         getClientIp(req)
       );
       res.status(201).json({ ok: true });
     } catch (err) {
-      res.status(400).json({ error: err instanceof Error ? err.message : 'Failed to create user.' });
+      sendRouteError(res, err, 'Failed to create user.');
     }
   });
 
   app.patch('/api/users/:id', requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
-      if (!isAdminOrSuper(req.authUser!)) {
-        res.status(403).json({ error: 'Only Administrators can modify user accounts.' });
+      if (!canManageDepartmentRepo(req.authUser!)) {
+        res.status(403).json({ error: 'Only Super Admin or Department Heads can modify user accounts.' });
         return;
       }
       const body = req.body ?? {};
-      if (body.roleSlug === 'super_admin' && !isSuperAdmin(req.authUser!)) {
-        res.status(403).json({ error: 'Only a Super Admin can promote users to SUPER ADMIN.' });
-        return;
-      }
       await updateUserRecord(
         req.authUser!,
         Number(req.params.id),
@@ -644,20 +681,20 @@ async function startServer(): Promise<void> {
       );
       res.json({ ok: true });
     } catch (err) {
-      res.status(400).json({ error: err instanceof Error ? err.message : 'Failed to update user.' });
+      sendRouteError(res, err, 'Failed to update user.');
     }
   });
 
   app.delete('/api/users/:id', requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
-      if (!isAdminOrSuper(req.authUser!)) {
-        res.status(403).json({ error: 'Only Administrators can delete user accounts.' });
+      if (!canManageDepartmentRepo(req.authUser!)) {
+        res.status(403).json({ error: 'Only Super Admin or Department Heads can delete user accounts.' });
         return;
       }
       await deleteUserRecord(req.authUser!, Number(req.params.id), getClientIp(req));
       res.json({ ok: true });
     } catch (err) {
-      res.status(400).json({ error: err instanceof Error ? err.message : 'Failed to remove user.' });
+      sendRouteError(res, err, 'Failed to remove user.');
     }
   });
 
@@ -679,7 +716,7 @@ async function startServer(): Promise<void> {
       );
       res.json({ user });
     } catch (err) {
-      res.status(400).json({ error: err instanceof Error ? err.message : 'Failed to update profile.' });
+      sendRouteError(res, err, 'Failed to update profile.');
     }
   });
 
@@ -698,7 +735,7 @@ async function startServer(): Promise<void> {
       );
       res.json({ ok: true });
     } catch (err) {
-      res.status(400).json({ error: err instanceof Error ? err.message : 'Failed to change password.' });
+      sendRouteError(res, err, 'Failed to change password.');
     }
   });
 
@@ -707,7 +744,7 @@ async function startServer(): Promise<void> {
       await markNotificationReadRecord(req.authUser!.id, Number(req.params.id));
       res.json({ ok: true });
     } catch (err) {
-      res.status(500).json({ error: err instanceof Error ? err.message : 'Update failed.' });
+      sendRouteError(res, err, 'Update failed.', 500);
     }
   });
 
@@ -716,7 +753,7 @@ async function startServer(): Promise<void> {
       await markAllNotificationsReadRecord(req.authUser!.id);
       res.json({ ok: true });
     } catch (err) {
-      res.status(500).json({ error: err instanceof Error ? err.message : 'Update failed.' });
+      sendRouteError(res, err, 'Update failed.', 500);
     }
   });
 
@@ -730,18 +767,22 @@ async function startServer(): Promise<void> {
       const updated = await updateSystemSettingsRecord(req.authUser!, body, getClientIp(req));
       res.json({ settings: updated });
     } catch (err) {
-      res.status(400).json({ error: err instanceof Error ? err.message : 'Failed to update settings.' });
+      sendRouteError(res, err, 'Failed to update settings.');
     }
   });
 
-  app.get('/api/activity-logs/export', requireAuth, async (_req: AuthenticatedRequest, res) => {
+  app.get('/api/activity-logs/export', requireAuth, async (req: AuthenticatedRequest, res) => {
     try {
-      const csv = await exportActivityLogsCsv();
+      if (!canViewActivityLogs(req.authUser!)) {
+        res.status(403).json({ error: 'Only Super Admin, Dean, or Department Heads can export activity logs.' });
+        return;
+      }
+      const csv = await exportActivityLogsCsv(req.authUser!);
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', 'attachment; filename="llcc_activity_logs.csv"');
       res.send(csv);
     } catch (err) {
-      res.status(500).json({ error: err instanceof Error ? err.message : 'Export failed.' });
+      sendRouteError(res, err, 'Export failed.', 500);
     }
   });
 

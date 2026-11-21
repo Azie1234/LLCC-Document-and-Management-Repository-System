@@ -20,7 +20,8 @@ export function DepartmentsView({
   onOpenDepartmentInRepo,
   onRefresh,
 }: DepartmentsViewProps) {
-  const isAdmin = currentUser.roleSlug === 'super_admin' || currentUser.roleSlug === 'admin';
+  const isSuperAdmin = currentUser.roleSlug === 'super_admin';
+  const isDeptHead = currentUser.roleSlug === 'department_head';
 
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
@@ -38,6 +39,11 @@ export function DepartmentsView({
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const canEditDept = (dept: Department): boolean => {
+    if (isSuperAdmin) return true;
+    return isDeptHead && currentUser.departmentId === dept.id;
+  };
 
   const handleAdd = async (e: FormEvent) => {
     e.preventDefault();
@@ -101,9 +107,12 @@ export function DepartmentsView({
     <div className="space-y-5">
       <div className="rounded-xl bg-white border border-slate-200/80 p-5 shadow-xs space-y-4">
         <div>
-          <h2 className="font-display text-lg font-bold text-llcc-navy">Department Management</h2>
+          <h2 className="font-display text-lg font-bold text-llcc-navy">
+            Academic Departments (COT · HTM · EDUC)
+          </h2>
           <p className="text-xs text-slate-500">
-            College offices, department heads, assigned personnel, and departmental collections.
+            Centralized college repositories governed by each Department Head with Academic Dean
+            oversight and approval.
           </p>
         </div>
 
@@ -113,7 +122,7 @@ export function DepartmentsView({
           </div>
         )}
 
-        {isAdmin && (
+        {isSuperAdmin && (
           <form
             onSubmit={handleAdd}
             className="pt-4 border-t border-slate-100 grid grid-cols-1 md:grid-cols-12 gap-3"
@@ -123,7 +132,7 @@ export function DepartmentsView({
               required
               value={code}
               onChange={(e) => setCode(e.target.value)}
-              placeholder="Code (e.g. LIB)"
+              placeholder="Code (e.g. ENG)"
               className="md:col-span-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-mono uppercase"
             />
             <input
@@ -158,7 +167,7 @@ export function DepartmentsView({
               className="md:col-span-2 inline-flex items-center justify-center gap-1.5 rounded-lg bg-llcc-navy px-3 py-2 text-xs font-semibold text-white hover:bg-llcc-royal"
             >
               <Plus className="h-3.5 w-3.5" />
-              Add Office
+              Add College
             </button>
             <input
               type="text"
@@ -171,16 +180,20 @@ export function DepartmentsView({
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {departments.map((dept) => {
           const deptDocs = documents.filter((d) => d.departmentId === dept.id);
+          const pendingDocs = deptDocs.filter(
+            (d) => d.status === 'Pending' || d.status === 'Under Review'
+          ).length;
           const personnel = users.filter((u) => u.departmentId === dept.id);
           const isEditing = editingId === dept.id;
+          const editable = canEditDept(dept);
 
           return (
             <div
               key={dept.id}
-              className="rounded-xl bg-white border border-slate-200/80 p-5 shadow-xs space-y-3"
+              className="rounded-xl bg-white border border-slate-200/80 p-5 shadow-xs flex flex-col justify-between space-y-3"
             >
               {isEditing ? (
                 <div className="space-y-2.5">
@@ -188,14 +201,16 @@ export function DepartmentsView({
                     <input
                       type="text"
                       value={editCode}
+                      disabled={!isSuperAdmin}
                       onChange={(e) => setEditCode(e.target.value)}
-                      className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-mono uppercase"
+                      className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-mono uppercase disabled:bg-slate-50"
                     />
                     <input
                       type="text"
                       value={editName}
+                      disabled={!isSuperAdmin}
                       onChange={(e) => setEditName(e.target.value)}
-                      className="col-span-2 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold"
+                      className="col-span-2 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold disabled:bg-slate-50"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
@@ -242,46 +257,50 @@ export function DepartmentsView({
                 </div>
               ) : (
                 <>
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <Building2 className="h-4 w-4 text-llcc-royal shrink-0" />
-                        <span className="font-mono text-xs font-bold text-llcc-royal">
-                          {dept.code}
-                        </span>
-                        <span className="text-slate-300">·</span>
-                        <span className="text-xs text-slate-500">
-                          Default Retention: {dept.retentionDefault}
+                  <div className="space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <Building2 className="h-4 w-4 text-llcc-royal shrink-0" />
+                          <span className="font-mono text-xs font-bold text-llcc-royal">
+                            {dept.code}
+                          </span>
+                          <span className="text-slate-300">·</span>
+                          <span className="text-xs text-slate-500">
+                            Retention: {dept.retentionDefault}
+                          </span>
+                        </div>
+                        <h3 className="font-display text-base font-bold text-llcc-navy mt-1">
+                          {dept.name}
+                        </h3>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <div className="font-display text-lg font-bold text-llcc-navy tabular-nums">
+                          {deptDocs.length}
+                        </div>
+                        <div className="text-[11px] text-slate-500">
+                          {pendingDocs > 0 ? `${pendingDocs} pending` : 'documents'}
+                        </div>
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-slate-600">{dept.description}</p>
+
+                    <div className="rounded-lg bg-slate-50 border border-slate-200/70 p-3 text-xs space-y-1.5">
+                      <div>
+                        <span className="text-slate-500">Department Head:</span>{' '}
+                        <span className="font-semibold text-slate-800">{dept.head}</span>
+                      </div>
+                      <div className="flex items-start gap-1.5 text-slate-600">
+                        <Users className="h-3.5 w-3.5 text-slate-400 shrink-0 mt-0.5" />
+                        <span>
+                          Assigned Personnel ({personnel.length}):{' '}
+                          {personnel.length > 0
+                            ? personnel.map((u) => u.fullName).join(', ')
+                            : 'No personnel assigned'}
                         </span>
                       </div>
-                      <h3 className="font-display text-base font-bold text-llcc-navy mt-1">
-                        {dept.name}
-                      </h3>
-                    </div>
-
-                    <div className="text-right shrink-0">
-                      <div className="font-display text-lg font-bold text-llcc-navy tabular-nums">
-                        {deptDocs.length}
-                      </div>
-                      <div className="text-[11px] text-slate-500">documents</div>
-                    </div>
-                  </div>
-
-                  <p className="text-xs text-slate-600">{dept.description}</p>
-
-                  <div className="rounded-lg bg-slate-50 border border-slate-200/70 p-3 text-xs space-y-1.5">
-                    <div>
-                      <span className="text-slate-500">Department Head:</span>{' '}
-                      <span className="font-semibold text-slate-800">{dept.head}</span>
-                    </div>
-                    <div className="flex items-start gap-1.5 text-slate-600">
-                      <Users className="h-3.5 w-3.5 text-slate-400 shrink-0 mt-0.5" />
-                      <span>
-                        Assigned Personnel ({personnel.length}):{' '}
-                        {personnel.length > 0
-                          ? personnel.map((u) => u.fullName).join(', ')
-                          : 'No personnel assigned'}
-                      </span>
                     </div>
                   </div>
 
@@ -292,10 +311,10 @@ export function DepartmentsView({
                       className="inline-flex items-center gap-1.5 text-xs font-semibold text-llcc-royal hover:text-llcc-navy"
                     >
                       <FolderOpen className="h-3.5 w-3.5" />
-                      Open Department Documents
+                      Open {dept.code} Repository
                     </button>
 
-                    {isAdmin && (
+                    {editable && (
                       <div className="flex items-center gap-1">
                         <button
                           type="button"
@@ -312,25 +331,26 @@ export function DepartmentsView({
                         >
                           <Edit3 className="h-3.5 w-3.5" />
                         </button>
-                        {confirmDeleteId === dept.id ? (
-                          <button
-                            type="button"
-                            disabled={busy}
-                            onClick={() => void handleDelete(dept.id)}
-                            className="px-2 py-1 rounded bg-red-600 text-white text-[11px] font-semibold"
-                          >
-                            Confirm
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => setConfirmDeleteId(dept.id)}
-                            title="Delete department"
-                            className="p-1.5 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        )}
+                        {isSuperAdmin &&
+                          (confirmDeleteId === dept.id ? (
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() => void handleDelete(dept.id)}
+                              className="px-2 py-1 rounded bg-red-600 text-white text-[11px] font-semibold"
+                            >
+                              Confirm
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setConfirmDeleteId(dept.id)}
+                              title="Delete department"
+                              className="p-1.5 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          ))}
                       </div>
                     )}
                   </div>

@@ -106,7 +106,7 @@ export function DocumentInspectorDrawer({
   const [shareTargetType, setShareTargetType] = useState<'user' | 'department' | 'role'>('user');
   const [shareUserId, setShareUserId] = useState<string>('');
   const [shareDeptId, setShareDeptId] = useState<string>('');
-  const [shareRoleSlug, setShareRoleSlug] = useState<RoleSlug>('faculty_staff');
+  const [shareRoleSlug, setShareRoleSlug] = useState<RoleSlug>('staff');
   const [sharePerm, setSharePerm] = useState<SharePermission>('view');
   const [shareExpiry, setShareExpiry] = useState('');
 
@@ -178,9 +178,36 @@ export function DocumentInspectorDrawer({
 
   if (!doc) return null;
 
-  const isAdmin = currentUser.roleSlug === 'super_admin' || currentUser.roleSlug === 'admin';
+  const isSuperAdmin = currentUser.roleSlug === 'super_admin';
+  const isDean = currentUser.roleSlug === 'dean';
+  const isDeptHeadOfDoc =
+    currentUser.roleSlug === 'department_head' &&
+    currentUser.departmentId !== null &&
+    currentUser.departmentId === doc.departmentId;
+
+  const hasEditShare = doc.shares.some((s) => {
+    if (s.revokedAt) return false;
+    if (s.expiresAt && new Date(s.expiresAt).getTime() < Date.now()) return false;
+    if (s.permission !== 'edit') return false;
+    return (
+      s.targetUserId === currentUser.id ||
+      (currentUser.departmentId !== null && s.targetDepartmentId === currentUser.departmentId) ||
+      s.targetRoleSlug === currentUser.roleSlug
+    );
+  });
+
   const canModify =
-    currentUser.roleSlug !== 'student' && (isAdmin || doc.uploadedById === currentUser.id);
+    isSuperAdmin ||
+    isDeptHeadOfDoc ||
+    (currentUser.roleSlug === 'staff' && (doc.uploadedById === currentUser.id || hasEditShare));
+  const canApproveOrReject = isSuperAdmin || isDean || isDeptHeadOfDoc;
+  const canArchiveOrPurge = isSuperAdmin || isDeptHeadOfDoc;
+  const canShare = canModify || isDean;
+
+  const editCategories = categories.filter(
+    (c) => c.departmentId === null || c.departmentId === editDeptId
+  );
+
   const retention = getRetentionInfo(doc);
   const ext = getFileExtension(doc.fileName).toLowerCase();
   const isPdf = doc.mimeType === 'application/pdf' || ext === 'pdf';
@@ -341,7 +368,7 @@ export function DocumentInspectorDrawer({
             { id: 'overview', label: 'Preview & Overview', icon: Eye },
             ...(canModify ? [{ id: 'edit', label: 'Edit Details', icon: Edit3 }] : []),
             { id: 'versions', label: `Versions (${doc.versions.length})`, icon: History },
-            ...(canModify
+            ...(canShare
               ? [{ id: 'share', label: `Sharing (${doc.shares.filter((s) => !s.revokedAt).length})`, icon: Share2 }]
               : []),
             { id: 'activity', label: `Approvals & Comments (${doc.comments.length})`, icon: MessageSquare },
@@ -409,9 +436,9 @@ export function DocumentInspectorDrawer({
             )}
 
             {/* Role-gated Workflow Controls */}
-            {canModify && (
+            {(canModify || canApproveOrReject || canArchiveOrPurge) && (
               <div className="flex flex-wrap items-center gap-2 pt-1">
-                {(doc.status === 'Draft' || doc.status === 'Rejected') && (
+                {canModify && (doc.status === 'Draft' || doc.status === 'Rejected') && (
                   <button
                     type="button"
                     disabled={busy}
@@ -423,7 +450,7 @@ export function DocumentInspectorDrawer({
                   </button>
                 )}
 
-                {isAdmin && doc.status === 'Pending' && (
+                {canApproveOrReject && doc.status === 'Pending' && (
                   <button
                     type="button"
                     disabled={busy}
@@ -435,7 +462,7 @@ export function DocumentInspectorDrawer({
                   </button>
                 )}
 
-                {isAdmin && (doc.status === 'Pending' || doc.status === 'Under Review') && (
+                {canApproveOrReject && (doc.status === 'Pending' || doc.status === 'Under Review') && (
                   <>
                     <button
                       type="button"
@@ -458,7 +485,7 @@ export function DocumentInspectorDrawer({
                   </>
                 )}
 
-                {isAdmin && doc.status !== 'Archived' && (
+                {canArchiveOrPurge && doc.status !== 'Archived' && (
                   <button
                     type="button"
                     disabled={busy}
@@ -470,7 +497,7 @@ export function DocumentInspectorDrawer({
                   </button>
                 )}
 
-                {isAdmin && doc.status === 'Archived' && (
+                {canArchiveOrPurge && doc.status === 'Archived' && (
                   <>
                     <button
                       type="button"
@@ -723,8 +750,9 @@ export function DocumentInspectorDrawer({
                     onChange={(e) => setEditCatId(Number(e.target.value))}
                     className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white"
                   >
-                    {categories.map((c) => (
+                    {editCategories.map((c) => (
                       <option key={c.id} value={c.id}>
+                        {c.departmentCode ? `[${c.departmentCode}] ` : ''}
                         {c.name}
                       </option>
                     ))}
@@ -736,8 +764,9 @@ export function DocumentInspectorDrawer({
                   </label>
                   <select
                     value={editDeptId}
+                    disabled={!isSuperAdmin}
                     onChange={(e) => setEditDeptId(Number(e.target.value))}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white"
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white disabled:bg-slate-50 disabled:text-slate-500"
                   >
                     {departments.map((d) => (
                       <option key={d.id} value={d.id}>
@@ -913,7 +942,7 @@ export function DocumentInspectorDrawer({
             </div>
           )}
 
-          {tab === 'share' && canModify && (
+          {tab === 'share' && canShare && (
             <div className="space-y-5">
               <form
                 onSubmit={handleCreateShare}
@@ -989,8 +1018,9 @@ export function DocumentInspectorDrawer({
                         className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs"
                       >
                         <option value="student">STUDENT</option>
-                        <option value="faculty_staff">FACULTY / STAFF</option>
-                        <option value="admin">ADMIN</option>
+                        <option value="staff">STAFF</option>
+                        <option value="department_head">DEPARTMENT HEAD</option>
+                        <option value="dean">DEAN</option>
                       </select>
                     </div>
                   )}

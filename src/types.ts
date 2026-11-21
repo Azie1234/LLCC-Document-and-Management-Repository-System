@@ -1,6 +1,6 @@
-export type RoleSlug = 'super_admin' | 'admin' | 'faculty_staff' | 'student';
+export type RoleSlug = 'super_admin' | 'dean' | 'department_head' | 'staff' | 'student';
 
-export type RoleName = 'SUPER ADMIN' | 'ADMIN' | 'FACULTY / STAFF' | 'STUDENT';
+export type RoleName = 'SUPER ADMIN' | 'DEAN' | 'DEPARTMENT HEAD' | 'STAFF' | 'STUDENT';
 
 export type DocumentStatus =
   | 'Draft'
@@ -56,6 +56,9 @@ export interface DocumentCategory {
   slug: string;
   name: string;
   description: string;
+  departmentId: number | null;
+  departmentCode: string | null;
+  departmentName: string | null;
   isSystem: boolean;
   createdAt: string;
 }

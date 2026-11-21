@@ -40,6 +40,7 @@ interface RepositoryViewProps {
   departments: Department[];
   initialDepartmentId?: number | 'all';
   initialCategoryId?: number | 'all';
+  initialSearchQuery?: string;
   onlyExpiring: boolean;
   onToggleOnlyExpiring: (next: boolean) => void;
   onInspectDocument: (doc: DocumentRecord, initialTab?: 'overview' | 'edit' | 'share') => void;
@@ -56,6 +57,7 @@ export function RepositoryView({
   departments,
   initialDepartmentId = 'all',
   initialCategoryId = 'all',
+  initialSearchQuery = '',
   onlyExpiring,
   onToggleOnlyExpiring,
   onInspectDocument,
@@ -65,7 +67,7 @@ export function RepositoryView({
   onDeleteDocument,
 }: RepositoryViewProps) {
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
   const [categoryFilter, setCategoryFilter] = useState<string>(
     initialCategoryId === 'all' ? 'all' : String(initialCategoryId)
   );
@@ -80,8 +82,36 @@ export function RepositoryView({
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
-  const isAdmin = currentUser.roleSlug === 'super_admin' || currentUser.roleSlug === 'admin';
-  const canEdit = currentUser.roleSlug !== 'student';
+  const canArchiveOrDeleteDoc = (doc: DocumentRecord): boolean => {
+    if (currentUser.roleSlug === 'super_admin') return true;
+    if (currentUser.roleSlug === 'department_head') {
+      return currentUser.departmentId !== null && doc.departmentId === currentUser.departmentId;
+    }
+    return false;
+  };
+
+  const canEditOrShareDoc = (doc: DocumentRecord): boolean => {
+    if (currentUser.roleSlug === 'super_admin') return true;
+    if (currentUser.roleSlug === 'department_head') {
+      return currentUser.departmentId !== null && doc.departmentId === currentUser.departmentId;
+    }
+    if (currentUser.roleSlug === 'staff') {
+      if (doc.uploadedById === currentUser.id) {
+        return true;
+      }
+      const now = Date.now();
+      return doc.shares.some(
+        (s) =>
+          !s.revokedAt &&
+          (!s.expiresAt || new Date(s.expiresAt).getTime() >= now) &&
+          s.permission === 'edit' &&
+          (s.targetUserId === currentUser.id ||
+            (currentUser.departmentId !== null && s.targetDepartmentId === currentUser.departmentId) ||
+            s.targetRoleSlug === currentUser.roleSlug)
+      );
+    }
+    return false;
+  };
 
   const fileExtensions = useMemo(() => {
     const exts = new Set<string>();
@@ -188,6 +218,9 @@ export function RepositoryView({
   };
 
   const selectedDocs = filteredDocuments.filter((d) => selectedIds.includes(d.id));
+  const archivableSelectedDocs = selectedDocs.filter(
+    (d) => canArchiveOrDeleteDoc(d) && d.status !== 'Archived'
+  );
 
   return (
     <div className="space-y-4">
@@ -225,17 +258,17 @@ export function RepositoryView({
               Export CSV {selectedDocs.length > 0 ? `(${selectedDocs.length})` : ''}
             </button>
 
-            {isAdmin && selectedDocs.length > 0 && (
+            {archivableSelectedDocs.length > 0 && (
               <button
                 type="button"
                 onClick={async () => {
-                  await onBulkArchive(selectedDocs.map((d) => d.id));
+                  await onBulkArchive(archivableSelectedDocs.map((d) => d.id));
                   setSelectedIds([]);
                 }}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-llcc-navy px-3 py-1.5 text-xs font-semibold text-white hover:bg-llcc-royal whitespace-nowrap shrink-0"
               >
                 <Archive className="h-3.5 w-3.5" />
-                Archive Selected ({selectedDocs.length})
+                Archive Selected ({archivableSelectedDocs.length})
               </button>
             )}
 
@@ -548,7 +581,7 @@ export function RepositoryView({
                           >
                             <Download className="h-3.5 w-3.5" />
                           </button>
-                          {canEdit && (
+                          {canEditOrShareDoc(doc) && (
                             <>
                               <button
                                 type="button"
@@ -568,7 +601,7 @@ export function RepositoryView({
                               </button>
                             </>
                           )}
-                          {isAdmin && doc.status !== 'Archived' && (
+                          {canArchiveOrDeleteDoc(doc) && doc.status !== 'Archived' && (
                             <button
                               type="button"
                               title="Archive document"
@@ -578,7 +611,7 @@ export function RepositoryView({
                               <Archive className="h-3.5 w-3.5" />
                             </button>
                           )}
-                          {isAdmin &&
+                          {canArchiveOrDeleteDoc(doc) &&
                             (confirmDeleteId === doc.id ? (
                               <button
                                 type="button"
@@ -695,7 +728,7 @@ export function RepositoryView({
                     >
                       <Download className="h-3.5 w-3.5" />
                     </button>
-                    {canEdit && (
+                    {canEditOrShareDoc(doc) && (
                       <button
                         type="button"
                         onClick={() => onInspectDocument(doc, 'share')}
@@ -705,7 +738,7 @@ export function RepositoryView({
                         <Share2 className="h-3.5 w-3.5" />
                       </button>
                     )}
-                    {isAdmin && doc.status !== 'Archived' && (
+                    {canArchiveOrDeleteDoc(doc) && doc.status !== 'Archived' && (
                       <button
                         type="button"
                         onClick={() => void onArchiveDocument(doc)}

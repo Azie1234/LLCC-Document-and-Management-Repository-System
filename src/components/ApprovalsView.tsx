@@ -1,42 +1,65 @@
 import { useMemo, useState } from 'react';
 import { CheckCircle2, Clock, Eye, XCircle } from 'lucide-react';
 import { transitionWorkflow } from '../api.ts';
-import type { DocumentRecord } from '../types.ts';
+import type { Department, DocumentRecord, UserAccount } from '../types.ts';
 import { formatBytes, formatDate, formatDateTime, getFileExtension } from '../utils/format.ts';
 import { StatusText } from './StatusText.tsx';
 
 interface ApprovalsViewProps {
+  currentUser: UserAccount;
   documents: DocumentRecord[];
+  departments: Department[];
+  initialDepartmentId?: number | 'all';
   onInspectDocument: (doc: DocumentRecord) => void;
   onRefresh: () => Promise<void>;
 }
 
 export function ApprovalsView({
+  currentUser,
   documents,
+  departments,
+  initialDepartmentId = 'all',
   onInspectDocument,
   onRefresh,
 }: ApprovalsViewProps) {
+  const [deptFilter, setDeptFilter] = useState<string>(
+    initialDepartmentId === 'all' ? 'all' : String(initialDepartmentId)
+  );
   const [busyId, setBusyId] = useState<number | null>(null);
   const [rejectDocId, setRejectDocId] = useState<number | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [error, setError] = useState<string | null>(null);
 
+  const canFilterAcrossDepts =
+    currentUser.roleSlug === 'super_admin' || currentUser.roleSlug === 'dean';
+
+  const canApproveDoc = (doc: DocumentRecord): boolean => {
+    if (currentUser.roleSlug === 'super_admin' || currentUser.roleSlug === 'dean') return true;
+    if (currentUser.roleSlug === 'department_head') {
+      return currentUser.departmentId !== null && doc.departmentId === currentUser.departmentId;
+    }
+    return false;
+  };
+
   const queue = useMemo(
     () =>
       documents
-        .filter((d) => d.status === 'Pending' || d.status === 'Under Review')
+        .filter((d) => (d.status === 'Pending' || d.status === 'Under Review') && canApproveDoc(d))
+        .filter((d) => deptFilter === 'all' || String(d.departmentId) === deptFilter)
         .sort((a, b) => new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()),
-    [documents]
+    [documents, deptFilter, currentUser]
   );
 
   const recentDecisions = useMemo(() => {
-    const entries = documents.flatMap((doc) =>
-      doc.approvals.map((ap) => ({ ...ap, docCode: doc.docCode, docTitle: doc.title, doc }))
-    );
+    const entries = documents
+      .filter((d) => deptFilter === 'all' || String(d.departmentId) === deptFilter)
+      .flatMap((doc) =>
+        doc.approvals.map((ap) => ({ ...ap, docCode: doc.docCode, docTitle: doc.title, doc }))
+      );
     return entries
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice(0, 12);
-  }, [documents]);
+  }, [documents, deptFilter]);
 
   const runAction = async (
     docId: number,
@@ -59,16 +82,57 @@ export function ApprovalsView({
 
   return (
     <div className="space-y-5">
-      <div className="rounded-xl bg-white border border-slate-200/80 p-5 shadow-xs flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="font-display text-lg font-bold text-llcc-navy">Pending Approvals</h2>
-          <p className="text-xs text-slate-500">
-            Review departmental submissions, approve verified records, or return with revision notes.
-          </p>
+      <div className="rounded-xl bg-white border border-slate-200/80 p-5 shadow-xs space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-display text-lg font-bold text-llcc-navy">Pending Approvals</h2>
+            <p className="text-xs text-slate-500">
+              {canFilterAcrossDepts
+                ? 'Centralized approval queue across COT, HTM, and EDUC departments.'
+                : 'Review departmental submissions, approve verified records, or return with revision notes.'}
+            </p>
+          </div>
+          <div className="text-xs font-semibold text-llcc-navy tabular-nums">
+            {queue.length} document{queue.length === 1 ? '' : 's'} awaiting action
+          </div>
         </div>
-        <div className="text-xs font-semibold text-llcc-navy tabular-nums">
-          {queue.length} document{queue.length === 1 ? '' : 's'} awaiting action
-        </div>
+
+        {canFilterAcrossDepts && departments.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => setDeptFilter('all')}
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                deptFilter === 'all'
+                  ? 'bg-llcc-navy text-white'
+                  : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              All Departments
+            </button>
+            {departments.map((d) => {
+              const count = documents.filter(
+                (doc) =>
+                  doc.departmentId === d.id &&
+                  (doc.status === 'Pending' || doc.status === 'Under Review')
+              ).length;
+              return (
+                <button
+                  key={d.id}
+                  type="button"
+                  onClick={() => setDeptFilter(String(d.id))}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors tabular-nums ${
+                    deptFilter === String(d.id)
+                      ? 'bg-llcc-navy text-white'
+                      : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  {d.code} ({count})
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {error && (
@@ -82,7 +146,7 @@ export function ApprovalsView({
           <CheckCircle2 className="h-8 w-8 mx-auto text-emerald-500" />
           <p className="text-sm font-semibold text-slate-700 mt-2">Approval queue is clear</p>
           <p className="text-xs text-slate-500 mt-1">
-            All pending submissions have been reviewed.
+            All pending submissions in this view have been reviewed.
           </p>
         </div>
       ) : (
@@ -95,6 +159,8 @@ export function ApprovalsView({
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="min-w-0 space-y-1">
                   <div className="flex flex-wrap items-center gap-2 text-xs">
+                    <span className="font-mono font-bold text-llcc-navy">{doc.departmentCode}</span>
+                    <span className="text-slate-300">·</span>
                     <span className="font-mono font-semibold text-llcc-royal tabular-nums">
                       {doc.docCode}
                     </span>

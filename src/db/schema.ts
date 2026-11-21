@@ -76,14 +76,21 @@ export const users = pgTable(
   ]
 );
 
-export const documentCategories = pgTable('document_categories', {
-  id: serial('id').primaryKey(),
-  slug: text('slug').notNull().unique(),
-  name: text('name').notNull().unique(),
-  description: text('description').notNull().default(''),
-  isSystem: boolean('is_system').notNull().default(false),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-});
+export const documentCategories = pgTable(
+  'document_categories',
+  {
+    id: serial('id').primaryKey(),
+    slug: text('slug').notNull().unique(),
+    name: text('name').notNull().unique(),
+    description: text('description').notNull().default(''),
+    departmentId: integer('department_id').references(() => departments.id, {
+      onDelete: 'set null',
+    }),
+    isSystem: boolean('is_system').notNull().default(false),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [index('doc_categories_department_idx').on(table.departmentId)]
+);
 
 export const documents = pgTable(
   'documents',
@@ -288,6 +295,7 @@ export const rolePermissionsRelations = relations(rolePermissions, ({ one }) => 
 export const departmentsRelations = relations(departments, ({ many }) => ({
   users: many(users),
   documents: many(documents),
+  categories: many(documentCategories),
   shares: many(documentShares),
 }));
 
@@ -299,7 +307,11 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   comments: many(documentComments),
 }));
 
-export const documentCategoriesRelations = relations(documentCategories, ({ many }) => ({
+export const documentCategoriesRelations = relations(documentCategories, ({ one, many }) => ({
+  department: one(departments, {
+    fields: [documentCategories.departmentId],
+    references: [departments.id],
+  }),
   documents: many(documents),
 }));
 

@@ -263,7 +263,11 @@ export async function downloadDocumentFile(
   URL.revokeObjectURL(url);
 }
 
-export async function createCategory(payload: { name: string; description: string }): Promise<void> {
+export async function createCategory(payload: {
+  name: string;
+  description: string;
+  departmentId?: number | null;
+}): Promise<void> {
   const res = await fetch('/api/categories', {
     method: 'POST',
     headers: authHeaders(),
@@ -274,7 +278,7 @@ export async function createCategory(payload: { name: string; description: strin
 
 export async function updateCategory(
   id: number,
-  payload: { name: string; description: string }
+  payload: { name: string; description: string; departmentId?: number | null }
 ): Promise<void> {
   const res = await fetch(`/api/categories/${id}`, {
     method: 'PATCH',
