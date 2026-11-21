@@ -126,7 +126,7 @@ export function Sidebar({
 
   const sidebarContent = (
     <aside
-      className={`flex h-full flex-col bg-llcc-navy text-white transition-all duration-200 ${
+      className={`flex h-full flex-col glass-sidebar text-white transition-all duration-200 ${
         collapsed ? 'w-20' : 'w-68'
       }`}
     >
@@ -179,7 +179,7 @@ export function Sidebar({
               }}
               className={`group flex w-full items-center justify-between gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                 active
-                  ? 'bg-llcc-royal text-white shadow-sm ring-1 ring-llcc-gold/40'
+                  ? 'bg-white/16 backdrop-blur-md text-white shadow-sm ring-1 ring-llcc-gold/50'
                   : 'text-slate-200 hover:bg-white/10 hover:text-white'
               }`}
             >
@@ -204,7 +204,7 @@ export function Sidebar({
       {/* Signed-in User & Logout (Item 15) */}
       <div className="border-t border-white/10 p-3 space-y-2.5">
         {!collapsed && (
-          <div className="rounded-lg bg-white/8 px-3 py-2.5">
+          <div className="rounded-lg glass-subcard px-3 py-2.5">
             <div className="text-xs font-semibold text-white truncate">{currentUser.fullName}</div>
             <div className="text-[11px] text-llcc-gold font-medium mt-0.5 truncate">
               {currentUser.roleName}

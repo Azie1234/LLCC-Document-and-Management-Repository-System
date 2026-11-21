@@ -105,7 +105,7 @@ export function DepartmentsView({
 
   return (
     <div className="space-y-5">
-      <div className="rounded-xl bg-white border border-slate-200/80 p-5 shadow-xs space-y-4">
+      <div className="rounded-xl glass-panel p-5 space-y-4">
         <div>
           <h2 className="font-display text-lg font-bold text-llcc-navy">
             Academic Departments (COT · HTM · EDUC)
@@ -193,7 +193,7 @@ export function DepartmentsView({
           return (
             <div
               key={dept.id}
-              className="rounded-xl bg-white border border-slate-200/80 p-5 shadow-xs flex flex-col justify-between space-y-3"
+              className="rounded-xl glass-panel p-5 flex flex-col justify-between space-y-3"
             >
               {isEditing ? (
                 <div className="space-y-2.5">

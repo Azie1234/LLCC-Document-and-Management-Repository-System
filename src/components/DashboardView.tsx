@@ -235,7 +235,7 @@ export function DashboardView({
   return (
     <div className="space-y-6">
       {/* Role-Specific Welcome Banner */}
-      <section className="rounded-2xl bg-gradient-to-r from-llcc-navy via-llcc-navy to-llcc-royal text-white p-6 sm:p-7 shadow-sm">
+      <section className="rounded-2xl glass-navy text-white p-6 sm:p-7 relative overflow-hidden">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
           <div className="space-y-1.5">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-llcc-gold">
@@ -352,7 +352,7 @@ export function DashboardView({
             {departmentSummaries.map(({ dept, total, approved, pending, storageBytes }) => (
               <div
                 key={dept.id}
-                className="rounded-xl bg-white border border-slate-200/90 p-5 shadow-xs flex flex-col justify-between gap-4 hover:border-llcc-royal/50 transition-colors"
+                className="rounded-xl glass-panel p-5 flex flex-col justify-between gap-4 hover:border-llcc-royal/45 transition-all"
               >
                 <div className="space-y-2.5">
                   <div className="flex items-start justify-between gap-3">
@@ -430,7 +430,7 @@ export function DashboardView({
           </div>
         )}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-4">
-          <div className="rounded-xl bg-white p-4 border border-slate-200/80 shadow-xs">
+          <div className="rounded-xl glass-panel p-4">
             <div className="flex items-center justify-between text-xs font-medium text-slate-500">
               <span>Total Documents</span>
               <FileText className="h-4 w-4 text-llcc-royal" />
@@ -443,7 +443,7 @@ export function DashboardView({
             </p>
           </div>
 
-          <div className="rounded-xl bg-white p-4 border border-slate-200/80 shadow-xs">
+          <div className="rounded-xl glass-panel p-4">
             <div className="flex items-center justify-between text-xs font-medium text-slate-500">
               <span>Approved Documents</span>
               <CheckCircle2 className="h-4 w-4 text-emerald-600" />
@@ -454,7 +454,7 @@ export function DashboardView({
             <p className="text-xs text-slate-500 mt-1">Verified &amp; published</p>
           </div>
 
-          <div className="rounded-xl bg-white p-4 border border-slate-200/80 shadow-xs">
+          <div className="rounded-xl glass-panel p-4">
             <div className="flex items-center justify-between text-xs font-medium text-slate-500">
               <span>Pending Documents</span>
               <Clock className="h-4 w-4 text-amber-600" />
@@ -465,7 +465,7 @@ export function DashboardView({
             <p className="text-xs text-slate-500 mt-1">Awaiting review/approval</p>
           </div>
 
-          <div className="rounded-xl bg-white p-4 border border-slate-200/80 shadow-xs">
+          <div className="rounded-xl glass-panel p-4">
             <div className="flex items-center justify-between text-xs font-medium text-slate-500">
               <span>Archived Documents</span>
               <Archive className="h-4 w-4 text-slate-500" />
@@ -476,7 +476,7 @@ export function DashboardView({
             <p className="text-xs text-slate-500 mt-1">Historical vault records</p>
           </div>
 
-          <div className="rounded-xl bg-white p-4 border border-slate-200/80 shadow-xs">
+          <div className="rounded-xl glass-panel p-4">
             <div className="flex items-center justify-between text-xs font-medium text-slate-500">
               <span>Total Storage Used</span>
               <HardDrive className="h-4 w-4 text-llcc-royal" />
@@ -490,10 +490,10 @@ export function DashboardView({
           <button
             type="button"
             onClick={onOpenExpiringFilter}
-            className={`text-left rounded-xl p-4 border transition-all shadow-xs ${
+            className={`text-left rounded-xl p-4 backdrop-blur-lg border transition-all shadow-xs ${
               stats.expiringSoon > 0
-                ? 'bg-amber-50/80 border-amber-300 hover:bg-amber-100/70'
-                : 'bg-white border-slate-200/80 hover:border-llcc-royal/40'
+                ? 'bg-amber-50/75 border-amber-300/80 hover:bg-amber-100/80'
+                : 'glass-panel hover:border-llcc-royal/40'
             }`}
           >
             <div className="flex items-center justify-between text-xs font-semibold text-amber-900">
@@ -515,7 +515,7 @@ export function DashboardView({
       {isDean && (
         <section className="grid grid-cols-1 xl:grid-cols-12 gap-5">
           {/* Cross-Department Search */}
-          <div className="xl:col-span-6 rounded-xl bg-white border border-slate-200/80 shadow-xs overflow-hidden flex flex-col">
+          <div className="xl:col-span-6 rounded-xl glass-panel overflow-hidden flex flex-col">
             <div className="px-5 py-4 border-b border-slate-100 space-y-3">
               <div className="flex items-center justify-between gap-2">
                 <div>
@@ -625,7 +625,7 @@ export function DashboardView({
           </div>
 
           {/* Pending Approvals from All Departments */}
-          <div className="xl:col-span-6 rounded-xl bg-white border border-slate-200/80 shadow-xs overflow-hidden flex flex-col">
+          <div className="xl:col-span-6 rounded-xl glass-panel overflow-hidden flex flex-col">
             <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-2">
               <div>
                 <h3 className="font-display text-sm font-bold text-llcc-navy">
@@ -709,7 +709,7 @@ export function DashboardView({
       {/* Visual Analytics Charts */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Chart 1: Documents by Category */}
-        <div className="rounded-xl bg-white p-5 border border-slate-200/80 shadow-xs">
+        <div className="rounded-xl glass-panel p-5">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="font-display text-sm font-bold text-llcc-navy">
@@ -740,7 +740,7 @@ export function DashboardView({
         </div>
 
         {/* Chart 2: Documents Uploaded Monthly (SVG Bar Chart) */}
-        <div className="rounded-xl bg-white p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between">
+        <div className="rounded-xl glass-panel p-5 flex flex-col justify-between">
           <div>
             <h3 className="font-display text-sm font-bold text-llcc-navy">
               Documents Uploaded Monthly
@@ -794,7 +794,7 @@ export function DashboardView({
         </div>
 
         {/* Chart 3: Document Approval Statistics */}
-        <div className="rounded-xl bg-white p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between">
+        <div className="rounded-xl glass-panel p-5 flex flex-col justify-between">
           <div>
             <h3 className="font-display text-sm font-bold text-llcc-navy">
               Document Approval Statistics
@@ -838,7 +838,7 @@ export function DashboardView({
       {/* Bottom Operational Panels */}
       <section className="grid grid-cols-1 xl:grid-cols-3 gap-5">
         {/* Recently Uploaded */}
-        <div className="rounded-xl bg-white border border-slate-200/80 shadow-xs overflow-hidden">
+        <div className="rounded-xl glass-panel overflow-hidden">
           <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100">
             <h3 className="font-display text-sm font-bold text-llcc-navy">
               Recently Uploaded Documents
@@ -877,7 +877,7 @@ export function DashboardView({
         </div>
 
         {/* Recently Accessed */}
-        <div className="rounded-xl bg-white border border-slate-200/80 shadow-xs overflow-hidden">
+        <div className="rounded-xl glass-panel overflow-hidden">
           <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100">
             <h3 className="font-display text-sm font-bold text-llcc-navy">
               Recently Accessed Documents
@@ -917,7 +917,7 @@ export function DashboardView({
         </div>
 
         {/* Document Activity Timeline */}
-        <div className="rounded-xl bg-white border border-slate-200/80 shadow-xs overflow-hidden">
+        <div className="rounded-xl glass-panel overflow-hidden">
           <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100">
             <h3 className="font-display text-sm font-bold text-llcc-navy">
               {isDean ? 'Recent Activity Across All Departments' : 'Document Activity Timeline'}

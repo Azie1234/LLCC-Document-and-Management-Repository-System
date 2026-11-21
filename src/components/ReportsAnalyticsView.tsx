@@ -60,7 +60,7 @@ export function ReportsAnalyticsView({
 
   return (
     <div className="space-y-5">
-      <div className="rounded-xl bg-white border border-slate-200/80 p-5 shadow-xs flex flex-wrap items-center justify-between gap-4">
+      <div className="rounded-xl glass-panel p-5 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="font-display text-lg font-bold text-llcc-navy">Reports and Analytics</h2>
           <p className="text-xs text-slate-500">
@@ -91,7 +91,7 @@ export function ReportsAnalyticsView({
 
       {/* Summary Strip */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="rounded-xl bg-white border border-slate-200/80 p-4 shadow-xs">
+        <div className="rounded-xl glass-panel p-4">
           <div className="flex items-center justify-between text-xs text-slate-500">
             <span>Total Documents</span>
             <FileText className="h-4 w-4 text-llcc-royal" />
@@ -104,7 +104,7 @@ export function ReportsAnalyticsView({
           </div>
         </div>
 
-        <div className="rounded-xl bg-white border border-slate-200/80 p-4 shadow-xs">
+        <div className="rounded-xl glass-panel p-4">
           <div className="flex items-center justify-between text-xs text-slate-500">
             <span>Total Storage Usage</span>
             <HardDrive className="h-4 w-4 text-llcc-royal" />
@@ -115,7 +115,7 @@ export function ReportsAnalyticsView({
           <div className="text-xs text-slate-500 mt-1">Across all versions</div>
         </div>
 
-        <div className="rounded-xl bg-white border border-slate-200/80 p-4 shadow-xs">
+        <div className="rounded-xl glass-panel p-4">
           <div className="flex items-center justify-between text-xs text-slate-500">
             <span>Views &amp; Downloads</span>
             <BarChart3 className="h-4 w-4 text-llcc-royal" />
@@ -128,7 +128,7 @@ export function ReportsAnalyticsView({
           </div>
         </div>
 
-        <div className="rounded-xl bg-white border border-slate-200/80 p-4 shadow-xs">
+        <div className="rounded-xl glass-panel p-4">
           <div className="flex items-center justify-between text-xs text-slate-500">
             <span>Active Repository Users</span>
             <Users className="h-4 w-4 text-llcc-royal" />
@@ -144,7 +144,7 @@ export function ReportsAnalyticsView({
 
       {/* Department & Category Analytics */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <div className="rounded-xl bg-white border border-slate-200/80 p-5 shadow-xs space-y-4">
+        <div className="rounded-xl glass-panel p-5 space-y-4">
           <h3 className="font-display text-sm font-bold text-llcc-navy">
             Documents &amp; Storage by Department
           </h3>
@@ -173,7 +173,7 @@ export function ReportsAnalyticsView({
           </div>
         </div>
 
-        <div className="rounded-xl bg-white border border-slate-200/80 p-5 shadow-xs space-y-3">
+        <div className="rounded-xl glass-panel p-5 space-y-3">
           <h3 className="font-display text-sm font-bold text-llcc-navy">
             Most Accessed Documents
           </h3>
@@ -197,15 +197,15 @@ export function ReportsAnalyticsView({
       </div>
 
       {/* Category Table */}
-      <div className="rounded-xl bg-white border border-slate-200/80 shadow-xs overflow-hidden">
+      <div className="rounded-xl glass-panel overflow-hidden">
         <div className="px-5 py-3.5 border-b border-slate-100">
           <h3 className="font-display text-sm font-bold text-llcc-navy">
             Category Distribution Summary
           </h3>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-slate-100">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-slate-200/50">
           {categoryBreakdown.map(({ cat, count }) => (
-            <div key={cat.id} className="bg-white px-4 py-3 flex items-center justify-between text-xs">
+            <div key={cat.id} className="bg-white/60 px-4 py-3 flex items-center justify-between text-xs">
               <span className="font-medium text-slate-700 truncate pr-2">{cat.name}</span>
               <span className="font-mono font-bold text-llcc-navy tabular-nums">{count}</span>
             </div>

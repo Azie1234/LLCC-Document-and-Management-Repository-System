@@ -380,13 +380,13 @@ export default function App() {
 
       <div className="flex-1 min-w-0 flex flex-col">
         {/* Top Utility Header */}
-        <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-xs border-b border-slate-200 px-4 sm:px-6 py-3 flex items-center justify-between gap-4 no-print">
+        <header className="sticky top-0 z-30 glass-header px-4 sm:px-6 py-3 flex items-center justify-between gap-4 no-print">
           <div className="flex items-center gap-3 min-w-0">
             <button
               type="button"
               onClick={() => setMobileSidebarOpen(true)}
               aria-label="Open navigation menu"
-              className="lg:hidden rounded-lg border border-slate-200 p-2 text-slate-600 hover:bg-slate-50"
+              className="lg:hidden rounded-lg border border-white/80 bg-white/60 p-2 text-slate-600 hover:bg-white/90"
             >
               <Menu className="h-4 w-4" />
             </button>
@@ -420,7 +420,7 @@ export default function App() {
             <button
               type="button"
               onClick={() => navigateTo('settings')}
-              className="hidden sm:flex items-center gap-2.5 rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-1.5 text-left hover:bg-slate-100 transition-colors"
+              className="hidden sm:flex items-center gap-2.5 rounded-lg border border-white/80 bg-white/65 backdrop-blur-md px-3 py-1.5 text-left hover:bg-white/90 transition-colors shadow-xs"
             >
               <div className="h-7 w-7 rounded-full bg-llcc-navy text-llcc-gold flex items-center justify-center font-display text-xs font-bold shrink-0">
                 {currentUser.fullName

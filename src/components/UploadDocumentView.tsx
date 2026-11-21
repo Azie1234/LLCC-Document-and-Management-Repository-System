@@ -220,7 +220,7 @@ export function UploadDocumentView({
 
   return (
     <div className="max-w-5xl mx-auto space-y-5">
-      <div className="rounded-xl bg-white border border-slate-200/80 p-6 shadow-xs">
+      <div className="rounded-xl glass-panel p-6">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
           <div>
             <h2 className="font-display text-xl font-bold text-llcc-navy">Upload Document</h2>

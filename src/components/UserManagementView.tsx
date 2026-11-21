@@ -148,7 +148,7 @@ export function UserManagementView({
 
   return (
     <div className="space-y-5">
-      <div className="rounded-xl bg-white border border-slate-200/80 p-5 shadow-xs space-y-4">
+      <div className="rounded-xl glass-panel p-5 space-y-4">
         <div>
           <h2 className="font-display text-lg font-bold text-llcc-navy">User Management</h2>
           <p className="text-xs text-slate-500">
@@ -259,7 +259,7 @@ export function UserManagementView({
       {editingUser && (
         <form
           onSubmit={handleSaveEdit}
-          className="rounded-xl bg-white border border-llcc-royal/40 p-5 shadow-xs space-y-3"
+          className="rounded-xl glass-panel border-llcc-royal/40 p-5 space-y-3"
         >
           <div className="flex items-center justify-between">
             <h3 className="font-display text-sm font-bold text-llcc-navy">
@@ -323,7 +323,7 @@ export function UserManagementView({
         </form>
       )}
 
-      <div className="rounded-xl bg-white border border-slate-200/80 shadow-xs overflow-hidden">
+      <div className="rounded-xl glass-panel overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>

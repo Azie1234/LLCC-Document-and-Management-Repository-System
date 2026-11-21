@@ -51,7 +51,7 @@ export function MyDocumentsView({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl bg-white border border-slate-200/80 p-5 shadow-xs flex flex-wrap items-center justify-between gap-4">
+      <div className="rounded-xl glass-panel p-5 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="font-display text-lg font-bold text-llcc-navy">My Documents</h2>
           <p className="text-xs text-slate-500">
@@ -98,7 +98,7 @@ export function MyDocumentsView({
       </div>
 
       {visibleDocs.length === 0 ? (
-        <div className="rounded-xl bg-white border border-slate-200/80 p-10 text-center">
+        <div className="rounded-xl glass-panel p-10 text-center">
           <FileText className="h-8 w-8 mx-auto text-slate-300" />
           <p className="text-sm font-semibold text-slate-700 mt-2">No documents in this view</p>
           <p className="text-xs text-slate-500 mt-1">
@@ -110,7 +110,7 @@ export function MyDocumentsView({
           {visibleDocs.map((doc) => (
             <div
               key={doc.id}
-              className="rounded-xl bg-white border border-slate-200/80 p-4 shadow-xs space-y-3"
+              className="rounded-xl glass-panel p-4 space-y-3"
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0 space-y-1">

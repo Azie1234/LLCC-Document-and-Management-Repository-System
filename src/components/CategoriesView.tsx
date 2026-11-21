@@ -114,7 +114,7 @@ export function CategoriesView({
 
   return (
     <div className="space-y-5">
-      <div className="rounded-xl bg-white border border-slate-200/80 p-5 shadow-xs space-y-4">
+      <div className="rounded-xl glass-panel p-5 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="font-display text-lg font-bold text-llcc-navy">Document Categories</h2>
@@ -212,7 +212,7 @@ export function CategoriesView({
           return (
             <div
               key={cat.id}
-              className="rounded-xl bg-white border border-slate-200/80 p-4 shadow-xs flex flex-col justify-between gap-3"
+              className="rounded-xl glass-panel p-4 flex flex-col justify-between gap-3"
             >
               {isEditing ? (
                 <div className="space-y-2.5">

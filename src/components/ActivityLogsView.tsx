@@ -32,7 +32,7 @@ export function ActivityLogsView({ logs }: ActivityLogsViewProps) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl bg-white border border-slate-200/80 p-5 shadow-xs space-y-4">
+      <div className="rounded-xl glass-panel p-5 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="font-display text-lg font-bold text-llcc-navy">Activity Logs</h2>
@@ -78,12 +78,12 @@ export function ActivityLogsView({ logs }: ActivityLogsViewProps) {
       </div>
 
       {filteredLogs.length === 0 ? (
-        <div className="rounded-xl bg-white border border-slate-200/80 p-10 text-center">
+        <div className="rounded-xl glass-panel p-10 text-center">
           <Activity className="h-8 w-8 mx-auto text-slate-300" />
           <p className="text-sm font-semibold text-slate-700 mt-2">No matching log entries</p>
         </div>
       ) : (
-        <div className="rounded-xl bg-white border border-slate-200/80 shadow-xs overflow-hidden">
+        <div className="rounded-xl glass-panel overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>

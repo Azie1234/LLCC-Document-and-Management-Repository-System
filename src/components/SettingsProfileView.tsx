@@ -131,7 +131,7 @@ export function SettingsProfileView({
         {/* Profile Information */}
         <form
           onSubmit={handleSaveProfile}
-          className="rounded-xl bg-white border border-slate-200/80 p-5 shadow-xs space-y-4"
+          className="rounded-xl glass-panel p-5 space-y-4"
         >
           <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
             <User className="h-4 w-4 text-llcc-royal" />
@@ -190,7 +190,7 @@ export function SettingsProfileView({
         {/* Change Password */}
         <form
           onSubmit={handleChangePassword}
-          className="rounded-xl bg-white border border-slate-200/80 p-5 shadow-xs space-y-4"
+          className="rounded-xl glass-panel p-5 space-y-4"
         >
           <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
             <KeyRound className="h-4 w-4 text-llcc-royal" />
@@ -253,7 +253,7 @@ export function SettingsProfileView({
       {isSuperAdmin && (
         <form
           onSubmit={handleSaveSystemSettings}
-          className="rounded-xl bg-white border border-slate-200/80 p-6 shadow-xs space-y-5"
+          className="rounded-xl glass-panel p-6 space-y-5"
         >
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div className="flex items-center gap-2">

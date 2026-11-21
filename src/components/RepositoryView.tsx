@@ -225,7 +225,7 @@ export function RepositoryView({
   return (
     <div className="space-y-4">
       {/* Header Controls */}
-      <div className="rounded-xl bg-white border border-slate-200/80 p-4 sm:p-5 shadow-xs space-y-4">
+      <div className="rounded-xl glass-panel p-4 sm:p-5 space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div>
             <h2 className="font-display text-lg font-bold text-llcc-navy">Document Repository</h2>
@@ -441,14 +441,14 @@ export function RepositoryView({
 
       {/* Table or Grid Display */}
       {filteredDocuments.length === 0 ? (
-        <div className="rounded-xl bg-white border border-slate-200/80 p-12 text-center">
+        <div className="rounded-xl glass-panel p-12 text-center">
           <p className="text-sm font-semibold text-slate-700">No matching documents found</p>
           <p className="text-xs text-slate-500 mt-1">
             Try clearing search filters or switching categories.
           </p>
         </div>
       ) : viewMode === 'table' ? (
-        <div className="rounded-xl bg-white border border-slate-200/80 shadow-xs overflow-hidden">
+        <div className="rounded-xl glass-panel overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -654,12 +654,12 @@ export function RepositoryView({
             return (
               <div
                 key={doc.id}
-                className={`rounded-xl border p-4 shadow-xs flex flex-col justify-between transition-colors ${
+                className={`rounded-xl p-4 flex flex-col justify-between transition-all ${
                   retention.state === 'expired' && doc.status !== 'Archived'
-                    ? 'bg-red-50/50 border-red-200'
+                    ? 'bg-red-50/75 backdrop-blur-lg border border-red-200/80 shadow-xs'
                     : isWarn
-                      ? 'bg-amber-50/50 border-amber-200'
-                      : 'bg-white border-slate-200/80'
+                      ? 'bg-amber-50/75 backdrop-blur-lg border border-amber-200/80 shadow-xs'
+                      : 'glass-panel'
                 }`}
               >
                 <div>

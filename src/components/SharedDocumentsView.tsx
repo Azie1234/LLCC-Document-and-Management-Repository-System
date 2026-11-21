@@ -65,7 +65,7 @@ export function SharedDocumentsView({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl bg-white border border-slate-200/80 p-5 shadow-xs flex flex-wrap items-center justify-between gap-4">
+      <div className="rounded-xl glass-panel p-5 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="font-display text-lg font-bold text-llcc-navy">Shared Documents</h2>
           <p className="text-xs text-slate-500">
@@ -102,7 +102,7 @@ export function SharedDocumentsView({
       </div>
 
       {rows.length === 0 ? (
-        <div className="rounded-xl bg-white border border-slate-200/80 p-10 text-center">
+        <div className="rounded-xl glass-panel p-10 text-center">
           <Share2 className="h-8 w-8 mx-auto text-slate-300" />
           <p className="text-sm font-semibold text-slate-700 mt-2">No active document shares</p>
           <p className="text-xs text-slate-500 mt-1">
@@ -110,7 +110,7 @@ export function SharedDocumentsView({
           </p>
         </div>
       ) : (
-        <div className="rounded-xl bg-white border border-slate-200/80 shadow-xs overflow-hidden">
+        <div className="rounded-xl glass-panel overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>

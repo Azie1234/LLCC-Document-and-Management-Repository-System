@@ -333,10 +333,10 @@ export function DocumentInspectorDrawer({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/50 backdrop-blur-[1px] no-print">
-      <div className="w-full max-w-3xl bg-white h-full shadow-2xl flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-50 flex justify-end bg-slate-950/45 backdrop-blur-xs no-print">
+      <div className="w-full max-w-3xl glass-popover h-full shadow-2xl flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="bg-llcc-navy text-white px-6 py-4 flex items-start justify-between gap-4 shrink-0">
+        <div className="glass-navy border-0 text-white px-6 py-4 flex items-start justify-between gap-4 shrink-0">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2 text-xs">
               <span className="font-mono font-semibold text-llcc-gold tabular-nums">

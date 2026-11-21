@@ -82,7 +82,7 @@ export function ApprovalsView({
 
   return (
     <div className="space-y-5">
-      <div className="rounded-xl bg-white border border-slate-200/80 p-5 shadow-xs space-y-3">
+      <div className="rounded-xl glass-panel p-5 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="font-display text-lg font-bold text-llcc-navy">Pending Approvals</h2>
@@ -142,7 +142,7 @@ export function ApprovalsView({
       )}
 
       {queue.length === 0 ? (
-        <div className="rounded-xl bg-white border border-slate-200/80 p-10 text-center">
+        <div className="rounded-xl glass-panel p-10 text-center">
           <CheckCircle2 className="h-8 w-8 mx-auto text-emerald-500" />
           <p className="text-sm font-semibold text-slate-700 mt-2">Approval queue is clear</p>
           <p className="text-xs text-slate-500 mt-1">
@@ -154,7 +154,7 @@ export function ApprovalsView({
           {queue.map((doc) => (
             <div
               key={doc.id}
-              className="rounded-xl bg-white border border-slate-200/80 p-5 shadow-xs space-y-3"
+              className="rounded-xl glass-panel p-5 space-y-3"
             >
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="min-w-0 space-y-1">
@@ -267,7 +267,7 @@ export function ApprovalsView({
       )}
 
       {/* Recent Review Decisions */}
-      <div className="rounded-xl bg-white border border-slate-200/80 shadow-xs overflow-hidden">
+      <div className="rounded-xl glass-panel overflow-hidden">
         <div className="px-5 py-3.5 border-b border-slate-100">
           <h3 className="font-display text-sm font-bold text-llcc-navy">
             Recent Approval &amp; Rejection History

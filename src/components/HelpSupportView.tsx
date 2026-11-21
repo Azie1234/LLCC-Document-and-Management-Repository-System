@@ -8,7 +8,7 @@ interface HelpSupportViewProps {
 export function HelpSupportView({ systemSettings }: HelpSupportViewProps) {
   return (
     <div className="max-w-5xl space-y-5">
-      <div className="rounded-xl bg-white border border-slate-200/80 p-6 shadow-xs">
+      <div className="rounded-xl glass-panel p-6">
         <div className="flex items-center gap-2.5">
           <HelpCircle className="h-5 w-5 text-llcc-royal" />
           <h2 className="font-display text-xl font-bold text-llcc-navy">
@@ -21,7 +21,7 @@ export function HelpSupportView({ systemSettings }: HelpSupportViewProps) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <div className="rounded-xl bg-white border border-slate-200/80 p-5 shadow-xs space-y-3">
+        <div className="rounded-xl glass-panel p-5 space-y-3">
           <div className="flex items-center gap-2 text-llcc-navy font-display font-bold text-sm">
             <BookOpen className="h-4 w-4 text-llcc-royal" />
             <span>Document Lifecycle Guide</span>
@@ -50,7 +50,7 @@ export function HelpSupportView({ systemSettings }: HelpSupportViewProps) {
           </ol>
         </div>
 
-        <div className="rounded-xl bg-white border border-slate-200/80 p-5 shadow-xs space-y-3">
+        <div className="rounded-xl glass-panel p-5 space-y-3">
           <div className="flex items-center gap-2 text-llcc-navy font-display font-bold text-sm">
             <Shield className="h-4 w-4 text-llcc-royal" />
             <span>Role Permissions Reference</span>
@@ -81,7 +81,7 @@ export function HelpSupportView({ systemSettings }: HelpSupportViewProps) {
           </div>
         </div>
 
-        <div className="rounded-xl bg-white border border-slate-200/80 p-5 shadow-xs space-y-2.5">
+        <div className="rounded-xl glass-panel p-5 space-y-2.5">
           <div className="flex items-center gap-2 text-llcc-navy font-display font-bold text-sm">
             <FileCheck2 className="h-4 w-4 text-llcc-royal" />
             <span>Supported Formats &amp; Limits</span>
@@ -97,7 +97,7 @@ export function HelpSupportView({ systemSettings }: HelpSupportViewProps) {
           </p>
         </div>
 
-        <div className="rounded-xl bg-white border border-slate-200/80 p-5 shadow-xs space-y-2.5">
+        <div className="rounded-xl glass-panel p-5 space-y-2.5">
           <div className="flex items-center gap-2 text-llcc-navy font-display font-bold text-sm">
             <Mail className="h-4 w-4 text-llcc-royal" />
             <span>Records &amp; MIS Helpdesk</span>

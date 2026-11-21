@@ -122,16 +122,24 @@ export function LoginPage({
   };
 
   return (
-    <div className="min-h-screen bg-llcc-canvas flex flex-col justify-center py-8 px-4 sm:px-6 lg:px-8">
-      <div className="mx-auto w-full max-w-5xl overflow-hidden rounded-2xl bg-white shadow-xl border border-slate-200/80 grid grid-cols-1 lg:grid-cols-12">
+    <div className="min-h-screen bg-llcc-canvas flex flex-col justify-center py-8 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      <div
+        className="pointer-events-none absolute -top-28 -left-24 h-96 w-96 rounded-full bg-llcc-royal/18 blur-3xl"
+        aria-hidden="true"
+      />
+      <div
+        className="pointer-events-none absolute -bottom-32 -right-24 h-96 w-96 rounded-full bg-llcc-gold/20 blur-3xl"
+        aria-hidden="true"
+      />
+      <div className="relative z-10 mx-auto w-full max-w-5xl overflow-hidden rounded-2xl glass-panel grid grid-cols-1 lg:grid-cols-12">
         {/* Left Institutional Branding Panel */}
-        <div className="lg:col-span-5 bg-llcc-navy text-white p-8 sm:p-10 flex flex-col justify-between relative overflow-hidden">
+        <div className="lg:col-span-5 glass-navy border-0 text-white p-8 sm:p-10 flex flex-col justify-between relative overflow-hidden">
           <div
-            className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-llcc-royal/40"
+            className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-sky-400/20 blur-2xl"
             aria-hidden="true"
           />
           <div
-            className="pointer-events-none absolute -left-20 -bottom-24 h-64 w-64 rounded-full bg-llcc-gold/10"
+            className="pointer-events-none absolute -left-20 -bottom-24 h-64 w-64 rounded-full bg-llcc-gold/20 blur-2xl"
             aria-hidden="true"
           />
 
@@ -166,25 +174,25 @@ export function LoginPage({
                 Institutional Access Tiers
               </p>
               <div className="space-y-2 text-xs text-slate-200">
-                <div className="rounded-lg bg-white/8 border border-white/10 px-3.5 py-2">
+                <div className="rounded-lg glass-subcard px-3.5 py-2">
                   <div className="font-semibold text-white">SUPER ADMIN</div>
                   <div className="text-slate-300 mt-0.5">
                     Complete system governance, user roles, department structure &amp; settings.
                   </div>
                 </div>
-                <div className="rounded-lg bg-white/8 border border-white/10 px-3.5 py-2">
+                <div className="rounded-lg glass-subcard px-3.5 py-2">
                   <div className="font-semibold text-white">DEAN</div>
                   <div className="text-slate-300 mt-0.5">
                     Centralized viewer and approver across COT, HTM, and EDUC repositories.
                   </div>
                 </div>
-                <div className="rounded-lg bg-white/8 border border-white/10 px-3.5 py-2">
+                <div className="rounded-lg glass-subcard px-3.5 py-2">
                   <div className="font-semibold text-white">DEPARTMENT HEAD</div>
                   <div className="text-slate-300 mt-0.5">
                     Full management of assigned college repository (COT, HTM, or EDUC).
                   </div>
                 </div>
-                <div className="rounded-lg bg-white/8 border border-white/10 px-3.5 py-2">
+                <div className="rounded-lg glass-subcard px-3.5 py-2">
                   <div className="font-semibold text-white">STAFF &amp; STUDENT</div>
                   <div className="text-slate-300 mt-0.5">
                     Departmental record uploads for staff; published &amp; shared access for students.
@@ -201,7 +209,7 @@ export function LoginPage({
         </div>
 
         {/* Right Sign-In / Password Reset Panel */}
-        <div className="lg:col-span-7 p-8 sm:p-10 lg:p-12 flex flex-col justify-center bg-white">
+        <div className="lg:col-span-7 p-8 sm:p-10 lg:p-12 flex flex-col justify-center bg-white/55 backdrop-blur-md">
           <div className="flex flex-col items-start mb-6">
             <div className="flex items-center gap-3 lg:hidden mb-4">
               <LlccCrest className="h-11 w-11" src={logoUrl} />
@@ -454,7 +462,7 @@ export function LoginPage({
           )}
 
           {/* Account Access Information */}
-          <div className="mt-6 rounded-xl bg-slate-50 border border-slate-200/80 p-4 text-xs text-slate-600 space-y-1.5">
+          <div className="mt-6 rounded-xl bg-white/60 backdrop-blur-sm border border-white/80 p-4 text-xs text-slate-600 space-y-1.5 shadow-xs">
             <div className="flex items-center gap-1.5 font-semibold text-llcc-navy">
               <Info className="h-3.5 w-3.5 text-llcc-gold" />
               <span>Account Access Information</span>
